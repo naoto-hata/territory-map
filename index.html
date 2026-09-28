@@ -18,7 +18,7 @@
 
 .pdf-viewer{position:absolute;inset:0;z-index:1200;background:#f5f6f8;display:none;flex-direction:column}.pdf-viewer.open{display:flex}.pdf-topbar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border-bottom:1px solid #ddd;position:sticky;top:0;z-index:2}.pdf-topbar .pdf-title{font-weight:800;flex:1;min-width:0}.pdf-topbar button{min-height:44px;border:0;border-radius:10px;padding:8px 13px;font-size:15px;font-weight:700}.pdf-close{background:#eef2f7;color:#202124}.pdf-download{background:#1a73e8;color:#fff}.pdf-body{flex:1;overflow:auto;padding:12px;display:flex;justify-content:center;align-items:flex-start}.pdf-canvas-wrap{background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.15);max-width:100%}.pdf-canvas-wrap canvas{display:block;max-width:100%;height:auto}.pdf-status{padding:8px 12px;font-size:12px;color:#5f6368;background:#fff;border-top:1px solid #ddd;text-align:center}.pdf-error{color:#b3261e;font-weight:700}
 @media(max-width:1100px){.pdf-topbar{padding-top:max(10px,env(safe-area-inset-top));}.pdf-body{padding:8px}.pdf-topbar .pdf-title{font-size:15px}.pdf-topbar button{padding:8px 10px}}
-</style></head><body><div class="app"><aside class="side"><div class="head"><h1>区域統合マップ <span class="badge">スマホ試作</span></h1><div class="sub">区域線＋番号を表示。区域を押すと、元のGoogleマイマップ、国土地理院の区域図PDF、ルート、駐車情報へ進めます。区域PDFは001〜272を1つのファイルにまとめています。</div></div><div class="controls"><input id="q" inputmode="numeric" placeholder="区域番号（例 152）"><button id="go">表示</button><button class="secondary" id="loadall">全区域線を読み込む</button></div><div class="status"><div id="stat">No.001を表示後、全区域を読み込みます。</div><div class="bar"><i id="prog"></i></div></div><div class="list" id="list"></div></aside><main class="mapwrap"><div id="map"></div><div class="legend"><b>緑枠＝駐車情報あり</b><br>駐車位置は未登録ならPDFを参照。登録後は直線距離と徒歩目安を表示。</div><section class="sheet" id="sheet" aria-live="polite"><div class="sheet-head"><div class="sheet-title" id="sheetTitle">区域</div><button class="sheet-close" id="sheetClose" aria-label="閉じる">×</button></div><div class="sheet-actions"><a class="primary" id="myMapLink" target="_blank">元のGoogleマイマップを開く</a><button class="secondary" id="territoryPdfLink" type="button">区域地図PDF（国土地理院）を開く</button><a class="secondary" id="areaRouteLink" target="_blank">区域中心までルート</a></div><div id="parkingCard" class="parking-card hidden"><h3>🅿 駐車情報あり</h3><div class="parking-note" id="parkingNote"></div><div class="parking-meta" id="parkingMeta"></div><div class="sheet-actions"><a class="secondary" id="pdfLink" target="_blank">駐車場情報PDFの該当ページを開く</a><a class="secondary hidden" id="parkingRouteLink" target="_blank">駐車場所まで車でナビ</a><a class="secondary hidden" id="walkLink" target="_blank">駐車場所から区域まで徒歩ルート</a></div><div id="locBox" class="locbox hidden"></div><div class="park-register"><button class="set" id="setParking">この区域の駐車位置を地図で登録</button><button class="clear" id="clearParking">登録位置を削除</button></div><div class="hint">試作では、駐車位置を地図上で1回タップして登録します。登録はこの端末内だけに保存されます。直線距離と徒歩目安は参考値で、実際の徒歩経路・時間はGoogle Mapsで確認します。</div></div></section><section class="pdf-viewer" id="territoryPdfViewer" aria-hidden="true">
+</style></head><body><div class="app"><aside class="side"><div class="head"><h1>区域統合マップ <span class="badge">スマホ試作</span></h1><div class="sub">区域線＋番号を高速表示。区域を押すと、元のGoogleマイマップ、国土地理院の区域図PDF、ルート、駐車情報へ進めます。2回目以降はブラウザのキャッシュを利用します。</div></div><div class="controls"><input id="q" inputmode="numeric" placeholder="区域番号（例 152）"><button id="go">表示</button><button class="secondary" id="loadall">全区域線を読み込む</button></div><div class="status"><div id="stat">No.001を表示後、全区域を読み込みます。</div><div class="bar"><i id="prog"></i></div></div><div class="list" id="list"></div></aside><main class="mapwrap"><div id="map"></div><div class="legend"><b>緑枠＝駐車情報あり</b><br>駐車位置は未登録ならPDFを参照。登録後は直線距離と徒歩目安を表示。</div><section class="sheet" id="sheet" aria-live="polite"><div class="sheet-head"><div class="sheet-title" id="sheetTitle">区域</div><button class="sheet-close" id="sheetClose" aria-label="閉じる">×</button></div><div class="sheet-actions"><a class="primary" id="myMapLink" target="_blank">元のGoogleマイマップを開く</a><button class="secondary" id="territoryPdfLink" type="button">区域地図PDF（国土地理院）を開く</button><a class="secondary" id="areaRouteLink" target="_blank">区域中心までルート</a></div><div id="parkingCard" class="parking-card hidden"><h3>🅿 駐車情報あり</h3><div class="parking-note" id="parkingNote"></div><div class="parking-meta" id="parkingMeta"></div><div class="sheet-actions"><a class="secondary" id="pdfLink" target="_blank">駐車場情報PDFの該当ページを開く</a><a class="secondary hidden" id="parkingRouteLink" target="_blank">駐車場所まで車でナビ</a><a class="secondary hidden" id="walkLink" target="_blank">駐車場所から区域まで徒歩ルート</a></div><div id="locBox" class="locbox hidden"></div><div class="park-register"><button class="set" id="setParking">この区域の駐車位置を地図で登録</button><button class="clear" id="clearParking">登録位置を削除</button></div><div class="hint">試作では、駐車位置を地図上で1回タップして登録します。登録はこの端末内だけに保存されます。直線距離と徒歩目安は参考値で、実際の徒歩経路・時間はGoogle Mapsで確認します。</div></div></section><section class="pdf-viewer" id="territoryPdfViewer" aria-hidden="true">
 <div class="pdf-topbar"><button class="pdf-close" id="pdfViewerClose" type="button">← 地図に戻る</button><div class="pdf-title" id="pdfViewerTitle">区域地図</div><button class="pdf-download" id="pdfViewerDownload" type="button">この区域PDFを保存</button></div>
 <div class="pdf-body"><div class="pdf-canvas-wrap"><canvas id="territoryPdfCanvas"></canvas></div></div>
 <div class="pdf-status" id="pdfViewerStatus">読み込み中...</div>
@@ -140,7 +140,7 @@ const manualFallback={
 
 const map=L.map('map',{preferCanvas:true}).setView([34.710,137.730],14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-const layers=new Map(); const statusMap=new Map();
+const layers=new Map(); const statusMap=new Map(); let bulkLoading=false;
 const list=document.getElementById('list'), stat=document.getElementById('stat'), prog=document.getElementById('prog');
 function renderList(){list.innerHTML=''; for(const x of manifest){const d=document.createElement('div');d.className='item';d.innerHTML=`<span class="num">${x.n}</span><span class="badge ${statusMap.get(x.n)==='error'?'err':''}">${statusMap.get(x.n)||'未読込'}</span>${parkingInfo[x.n]?'<span class="park-mini" title="駐車情報あり">🅿</span>':''}`;d.onclick=()=>loadOne(x,true);list.appendChild(d)}}
 renderList();
@@ -148,7 +148,7 @@ function kmlUrl(mid){return `https://www.google.com/maps/d/kml?mid=${encodeURICo
 function coordsFromText(t){return t.trim().split(/\s+/).map(s=>s.split(',')).filter(a=>a.length>=2).map(a=>[parseFloat(a[1]),parseFloat(a[0])]).filter(a=>Number.isFinite(a[0])&&Number.isFinite(a[1]))}
 function makePopup(x,center){const lat=center.lat.toFixed(6),lng=center.lng.toFixed(6);return `<div class="popup-title">区域 ${x.n}</div><div class="popup-links"><a target="_blank" href="https://www.google.com/maps/d/viewer?mid=${encodeURIComponent(x.mid)}">Googleマイマップで開く</a><a target="_blank" href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}">Google Mapsで区域付近を開く</a><a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking">現在地から徒歩ルート</a></div>`}
 async function loadOne(x,focus=false){if(layers.has(x.n)){const g=layers.get(x.n); if(focus) map.fitBounds(g.getBounds(),{padding:[30,30],maxZoom:18}); return true}
-statusMap.set(x.n,'読込中');renderList();
+statusMap.set(x.n,'読込中');if(!bulkLoading)renderList();
 try{
 if(manualFallback[x.n]){
  const f=manualFallback[x.n]; const group=L.featureGroup();
@@ -156,15 +156,49 @@ if(manualFallback[x.n]){
  group.addTo(map); const b=group.getBounds(); const center=b.getCenter();
  const marker=L.marker(center,{icon:L.divIcon({className:'',html:`<div class="area-label ${parkingInfo[x.n]?'has-parking':''}">${x.n}</div>`,iconSize:null})}).addTo(map);
  const popup=`<div class="popup-title">区域 ${x.n}</div><div style="font-size:12px;margin:4px 0 8px">${f.note}</div><div class="popup-links"><a target="_blank" href="https://www.google.com/maps/search/?api=1&query=${center.lat.toFixed(6)},${center.lng.toFixed(6)}">Google Mapsで区域付近を開く</a><a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${center.lat.toFixed(6)},${center.lng.toFixed(6)}&travelmode=walking">現在地から徒歩ルート</a></div>`;
- marker.on('click',()=>openSheet(x,center)); poly.on('click',()=>openSheet(x,center)); group.addLayer(marker); layers.set(x.n,group); statusMap.set(x.n,'PDF復元'); if(focus)map.fitBounds(b,{padding:[30,30],maxZoom:18});renderList();return true;
+ marker.on('click',()=>openSheet(x,center)); poly.on('click',()=>openSheet(x,center)); group.addLayer(marker); layers.set(x.n,group); statusMap.set(x.n,'PDF復元'); if(focus)map.fitBounds(b,{padding:[30,30],maxZoom:18});if(!bulkLoading)renderList();return true;
 }
-const r=await fetch(kmlUrl(x.mid),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const txt=await r.text();if(!txt.includes('<kml'))throw new Error('KMLではありません');const xml=new DOMParser().parseFromString(txt,'text/xml');const group=L.featureGroup();
+const r=await fetch(kmlUrl(x.mid),{cache:'force-cache'});if(!r.ok)throw new Error('HTTP '+r.status);const txt=await r.text();if(!txt.includes('<kml'))throw new Error('KMLではありません');const xml=new DOMParser().parseFromString(txt,'text/xml');const group=L.featureGroup();
 const lineNodes=[...xml.getElementsByTagName('LineString')]; const polyNodes=[...xml.getElementsByTagName('Polygon')];
 for(const node of lineNodes){const c=node.getElementsByTagName('coordinates')[0];if(!c)continue;const pts=coordsFromText(c.textContent);if(pts.length<2)continue;const closed=pts.length>3&&Math.abs(pts[0][0]-pts.at(-1)[0])<1e-7&&Math.abs(pts[0][1]-pts.at(-1)[1])<1e-7;const l=closed?L.polygon(pts,{color:'#202124',weight:4,fill:false,opacity:.9}):L.polyline(pts,{color:'#202124',weight:4,opacity:.9});l.addTo(group)}
 for(const node of polyNodes){for(const c of node.getElementsByTagName('coordinates')){const pts=coordsFromText(c.textContent);if(pts.length<3)continue;L.polygon(pts,{color:'#202124',weight:4,fill:false,opacity:.9}).addTo(group)}}
-if(!group.getLayers().length)throw new Error('線データなし');group.addTo(map);const b=group.getBounds();const center=b.getCenter();const marker=L.marker(center,{icon:L.divIcon({className:'',html:`<div class="area-label ${parkingInfo[x.n]?'has-parking':''}">${x.n}</div>`,iconSize:null})}).addTo(map);marker.on('click',()=>openSheet(x,center));group.eachLayer(l=>l.on('click',()=>openSheet(x,center)));group.addLayer(marker);layers.set(x.n,group);statusMap.set(x.n,'表示中');if(focus)map.fitBounds(b,{padding:[30,30],maxZoom:18});renderList();return true}catch(e){console.warn(x.n,e);statusMap.set(x.n,'error');renderList();stat.textContent=`区域 ${x.n} の読込失敗：${e && e.message ? e.message : e}`;return false}}
-async function loadAll(){document.getElementById('loadall').disabled=true;let ok=0,err=0,done=0;stat.textContent='全区域線を読み込み中…';const queue=[...manifest];const workers=Array.from({length:3},async()=>{while(queue.length){const x=queue.shift();const good=await loadOne(x,false);good?ok++:err++;done++;prog.style.width=(done/manifest.length*100)+'%';stat.textContent=`読み込み ${done}/${manifest.length}　成功 ${ok}　失敗 ${err}`}});await Promise.all(workers);stat.textContent=`完了：成功 ${ok}区域／失敗 ${err}区域。失敗が多い場合はブラウザの開発者ツールではなく、まず001単体表示の結果をご確認ください。`;document.getElementById('loadall').disabled=false;if(layers.size){const all=L.featureGroup([...layers.values()]);try{map.fitBounds(all.getBounds(),{padding:[20,20]})}catch(e){}}}
+if(!group.getLayers().length)throw new Error('線データなし');group.addTo(map);const b=group.getBounds();const center=b.getCenter();const marker=L.marker(center,{icon:L.divIcon({className:'',html:`<div class="area-label ${parkingInfo[x.n]?'has-parking':''}">${x.n}</div>`,iconSize:null})}).addTo(map);marker.on('click',()=>openSheet(x,center));group.eachLayer(l=>l.on('click',()=>openSheet(x,center)));group.addLayer(marker);layers.set(x.n,group);statusMap.set(x.n,'表示中');if(focus)map.fitBounds(b,{padding:[30,30],maxZoom:18});if(!bulkLoading)renderList();return true}catch(e){console.warn(x.n,e);statusMap.set(x.n,'error');if(!bulkLoading)renderList();stat.textContent=`区域 ${x.n} の読込失敗：${e && e.message ? e.message : e}`;return false}}
+async function loadAll(){
+  document.getElementById('loadall').disabled=true;
+  bulkLoading=true;
+  let ok=0,err=0,done=0;
+  stat.textContent='全区域線を高速読み込み中…';
+  prog.style.width='0%';
+  const queue=[...manifest];
+  const workerCount=Math.min(8, Math.max(4, (navigator.hardwareConcurrency||6)));
+  let lastUi=0;
+  const workers=Array.from({length:workerCount},async()=>{
+    while(queue.length){
+      const x=queue.shift();
+      const good=await loadOne(x,false);
+      good?ok++:err++;
+      done++;
+      const now=performance.now();
+      if(done===manifest.length || now-lastUi>120){
+        lastUi=now;
+        prog.style.width=(done/manifest.length*100)+'%';
+        stat.textContent=`読み込み ${done}/${manifest.length}　成功 ${ok}　失敗 ${err}`;
+        await new Promise(r=>requestAnimationFrame(r));
+      }
+    }
+  });
+  await Promise.all(workers);
+  bulkLoading=false;
+  renderList();
+  stat.textContent=`完了：成功 ${ok}区域／失敗 ${err}区域。`;
+  document.getElementById('loadall').disabled=false;
+  if(layers.size){
+    const all=L.featureGroup([...layers.values()]);
+    try{map.fitBounds(all.getBounds(),{padding:[20,20]})}catch(e){}
+  }
+}
+
 map.on('click',e=>{if(!placingParkingFor)return;const n=placingParkingFor;savedParking[n]={lat:e.latlng.lat,lng:e.latlng.lng};saveParking();showParkingMarker(n);placingParkingFor=null;const x=manifest.find(v=>v.n===n);const g=layers.get(n);const center=g?g.getBounds().getCenter():e.latlng;openSheet(x,center);document.getElementById('stat').textContent=`区域 ${n} の駐車位置を登録しました。`;});
 document.getElementById('loadall').onclick=loadAll;document.getElementById('go').onclick=()=>{let n=document.getElementById('q').value.trim().replace(/\D/g,'');if(!n)return;n=n.padStart(3,'0');const x=manifest.find(v=>v.n===n);if(!x){alert('区域が見つかりません');return}loadOne(x,true)};document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('go').click()});
-loadOne(manifest.find(x=>x.n==='001'),true).then(()=>{stat.textContent='区域データを読み込み中…';loadAll();});
+stat.textContent='区域データを読み込み中…'; loadAll();
 </script></body></html>
