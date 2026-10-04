@@ -763,7 +763,7 @@ const parkingPdfCanvas=document.getElementById('parkingPdfCanvas');
 const parkingPdfHelp=document.getElementById('parkingPdfHelp');
 const parkingPdfScroll=document.getElementById('parkingPdfScroll');
 let parkingPdfDocPromise=null, parkingPdfPages=[],parkingPdfPosition=0,parkingPdfRenderToken=0;
-function parkingPdfUrl(){return new URL('./parking-info.pdf',location.protocol==='file:'?'https://naoto-hata.github.io/territory-map/':window.location.href).href;}
+function parkingPdfUrl(){return new URL('./parking-info.pdf?v=20261004-visible-text',location.protocol==='file:'?'https://naoto-hata.github.io/territory-map/':window.location.href).href;}
 async function renderParkingPdfPage(){
  const token=++parkingPdfRenderToken, pageNum=parkingPdfPages[parkingPdfPosition];
  const label=`${parkingPdfPosition+1}/${parkingPdfPages.length}（PDF ${pageNum}ページ）`;
