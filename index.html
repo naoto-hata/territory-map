@@ -765,7 +765,7 @@ const parkingPdfHelp=document.getElementById('parkingPdfHelp');
 let parkingPdfDocPromise=null;
 let parkingPdfRenderTask=null;
 let parkingPdfRequest=0;
-function parkingPdfUrl(){return new URL('./parking-info.pdf',location.protocol==='file:'?'https://naoto-hata.github.io/territory-map/':window.location.href).href;}
+function parkingPdfUrl(){const url=new URL('./parking-info.pdf',location.protocol==='file:'?'https://naoto-hata.github.io/territory-map/':window.location.href);url.searchParams.set('v','20261004-formfix');return url.href;}
 function closeParkingPdf(){parkingPdfRequest++;if(parkingPdfRenderTask){parkingPdfRenderTask.cancel();parkingPdfRenderTask=null;}parkingPdfOverlay.classList.remove('open');parkingPdfOverlay.setAttribute('aria-hidden','true');document.body.style.overflow='';document.getElementById('pdfLink').focus();}
 async function showParkingPdfPage(pageNo,n,request){
  if(request!==parkingPdfRequest)return;
