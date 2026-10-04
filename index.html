@@ -685,7 +685,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .parking-pdf-toolbar{display:flex;gap:10px;align-items:center;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid #dce0e5;background:#fff;flex-wrap:wrap}
 .parking-pdf-toolbar button,.parking-pdf-toolbar a{font:700 15px system-ui,sans-serif;min-height:44px;padding:10px 12px;border-radius:9px;border:0;text-decoration:none;display:inline-flex;align-items:center}
 .parking-pdf-toolbar button{background:#1a73e8;color:#fff}.parking-pdf-toolbar a{background:#edf2f8;color:#202124}
-.parking-pdf-content{flex:1;min-height:0;overflow:auto;background:#f5f6f8;padding:12px;text-align:center}.parking-pdf-content canvas{display:block;max-width:100%;height:auto;margin:0 auto;background:#fff;box-shadow:0 2px 12px #0002}.parking-pdf-pages{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:8px}.parking-pdf-pages button{min-height:42px;border:1px solid #bbb;background:#fff;color:#202124;border-radius:8px;font-weight:700;padding:6px 14px}.parking-pdf-pages button.selected{background:#1a73e8;color:white;border-color:#1a73e8}.parking-pdf-help{padding:5px 12px;font:12px system-ui,sans-serif;color:#56606e}
+.parking-pdf-frame{width:100%;flex:1;min-height:0;overflow:auto;background:#f5f6f8;text-align:center;padding:10px}.parking-pdf-frame canvas{display:inline-block;background:#fff;max-width:100%;height:auto;box-shadow:0 1px 10px #0002}.parking-pdf-nav{display:flex;align-items:center;justify-content:center;gap:14px;padding:8px;background:#fff;border-top:1px solid #ddd}.parking-pdf-nav button{padding:9px 12px;min-height:42px;border:0;border-radius:8px;background:#e8f0fe;color:#174ea6;font-weight:700}.parking-pdf-nav button:disabled{opacity:.35}.parking-pdf-help{padding:5px 12px;font:12px system-ui,sans-serif;color:#56606e}
 </style></head><body><noscript><div style="position:fixed;inset:0;z-index:10000;background:white;padding:30px;font:16px/1.8 sans-serif">このファイルプレビューでは地図の操作機能を実行できません。修正版を元のWebサイトの index.html に置き換え、SafariでサイトのURLを開いてください。</div></noscript><div class="app"><aside class="side"><div class="head"><h1>区域統合マップ <span class="badge">スマホ試作</span></h1><div class="sub">区域線＋番号を高速表示。区域を押すと、元のGoogleマイマップ、国土地理院の区域図PDF、ルート、駐車情報へ進めます。2回目以降はブラウザのキャッシュを利用します。</div></div><div class="controls"><input id="q" inputmode="numeric" placeholder="区域番号（例 152）"><button id="go">表示</button><button class="secondary" id="loadall">全区域線を読み込む</button></div><div class="status"><div id="stat">No.001を表示後、全区域を読み込みます。</div><div class="bar"><i id="prog"></i></div></div><div class="list" id="list"></div></aside><main class="mapwrap"><div id="map"></div><div id="instantBadge" class="instant-badge">区域を準備中…</div><div class="legend"><b>緑枠＝駐車情報あり</b><br>駐車位置は未登録ならPDFを参照。登録後は直線距離と徒歩目安を表示。</div><section class="sheet" id="sheet" aria-live="polite"><div class="sheet-head"><div class="sheet-title" id="sheetTitle">区域</div><button class="sheet-close" id="sheetClose" aria-label="閉じる">×</button></div><div class="sheet-actions"><a class="primary" id="myMapLink" target="_blank">元のGoogleマイマップを開く</a><button class="secondary" id="territoryPdfLink" type="button">区域地図PDF（国土地理院）を開く</button><a class="secondary" id="areaRouteLink" target="_blank">区域中心までルート</a></div><div id="parkingCard" class="parking-card hidden"><h3>🅿 駐車情報あり</h3><div class="parking-note" id="parkingNote"></div><div class="parking-meta" id="parkingMeta"></div><div class="sheet-actions"><a class="secondary" id="pdfLink" href="#">駐車場情報PDFの該当ページを開く</a><a class="secondary hidden" id="parkingRouteLink" target="_blank">駐車場所まで車でナビ</a><a class="secondary hidden" id="walkLink" target="_blank">駐車場所から区域まで徒歩ルート</a></div><div id="locBox" class="locbox hidden"></div><div class="park-register"><button class="set" id="setParking">この区域の駐車位置を地図で登録</button><button class="clear" id="clearParking">登録位置を削除</button></div><div class="hint">試作では、駐車位置を地図上で1回タップして登録します。登録はこの端末内だけに保存されます。直線距離と徒歩目安は参考値で、実際の徒歩経路・時間はGoogle Mapsで確認します。</div></div></section><section class="pdf-viewer" id="territoryPdfViewer" aria-hidden="true">
 <div class="pdf-topbar"><button class="pdf-close" id="pdfViewerClose" type="button">← 地図に戻る</button><div class="pdf-title" id="pdfViewerTitle">区域地図</div><button class="pdf-download" id="pdfViewerDownload" type="button">この区域PDFを保存</button></div>
 <div class="pdf-body"><div class="pdf-canvas-wrap"><canvas id="territoryPdfCanvas"></canvas></div></div>
@@ -693,8 +693,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
 </section></main></div>
 <section class="parking-pdf-overlay" id="parkingPdfOverlay" role="dialog" aria-modal="true" aria-label="駐車場情報PDF" aria-hidden="true">
 <div class="parking-pdf-toolbar"><button type="button" id="parkingPdfClose">← 区域に戻る</button><strong id="parkingPdfTitle">駐車場情報</strong><a id="parkingPdfExternal" target="_blank" rel="noopener noreferrer">別タブで開く ↗</a></div>
-<div class="parking-pdf-pages" id="parkingPdfPages"></div><div class="parking-pdf-content" id="parkingPdfContent"><canvas id="parkingPdfCanvas"></canvas></div>
-<div class="parking-pdf-help" id="parkingPdfHelp">該当ページだけを表示します。別タブでは全ページのPDFが開きます。</div>
+<div class="parking-pdf-frame" id="parkingPdfScroll"><canvas id="parkingPdfCanvas" aria-label="駐車場情報PDFの該当ページ"></canvas></div>
+<div class="parking-pdf-help" id="parkingPdfHelp" role="status">該当ページを読み込みます。</div><div class="parking-pdf-nav hidden" id="parkingPdfNav"><button id="parkingPdfPrev" type="button">← 前のページ</button><span id="parkingPdfPageLabel"></span><button id="parkingPdfNext" type="button">次のページ →</button></div>
 </section>
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -711,7 +711,7 @@ const manifest=[{"n":"001","mid":"11djJPGDJEYDKB4tD-1LSmCpq113xn2Y"},{"n":"002",
 
 const parkingInfo={
 "009":{page:4,note:"自宅前スペース2台分可。"},
-"016":{page:5,note:"条件付き利用。詳細はPDFで確認してください。"},
+"016":{page:5,note:"シャッターが閉まっている場合に限り利用可能。詳細はPDF参照。"},
 "022":{page:7,pages:[7,8],note:"大西月極駐車場。月～木に限り駐車可。追加枠あり。"},
 "026":{page:3,note:"自宅前を通って奥に入ると駐車場があります。"},
 "031":{page:6,note:"空いていれば可。車が出られるように。夕方17時頃まで。"},
@@ -753,63 +753,56 @@ function territoryPdfInfo(nValue){
   return {file:'territory-maps.pdf', page:n};
 }
 let currentTerritoryPdf=null;
-function openSheet(x,center){selectedTerritory={x,center};document.getElementById('sheetTitle').textContent=`区域 ${x.n}`;document.getElementById('myMapLink').href=`https://www.google.com/maps/d/viewer?mid=${encodeURIComponent(x.mid)}`;const tpdf=territoryPdfInfo(x.n);currentTerritoryPdf=tpdf;document.getElementById('territoryPdfLink').disabled=!tpdf;document.getElementById('areaRouteLink').href=`https://www.google.com/maps/dir/?api=1&destination=${center.lat},${center.lng}`;const info=parkingInfo[x.n],card=document.getElementById('parkingCard');if(info){card.classList.remove('hidden');document.getElementById('parkingNote').textContent=info.note;document.getElementById('parkingMeta').textContent=`駐車場情報PDF：${(info.pages||[info.page]).join("・")}ページ`;document.getElementById('pdfLink').href=`https://naoto-hata.github.io/territory-map/parking-info.pdf#page=${info.page}`;updateParkingDistance(x.n,center)}else{card.classList.add('hidden')}document.getElementById('sheet').classList.add('open')}
+function openSheet(x,center){selectedTerritory={x,center};document.getElementById('sheetTitle').textContent=`区域 ${x.n}`;document.getElementById('myMapLink').href=`https://www.google.com/maps/d/viewer?mid=${encodeURIComponent(x.mid)}`;const tpdf=territoryPdfInfo(x.n);currentTerritoryPdf=tpdf;document.getElementById('territoryPdfLink').disabled=!tpdf;document.getElementById('areaRouteLink').href=`https://www.google.com/maps/dir/?api=1&destination=${center.lat},${center.lng}`;const info=parkingInfo[x.n],card=document.getElementById('parkingCard');if(info){card.classList.remove('hidden');document.getElementById('parkingNote').textContent=info.note;document.getElementById('parkingMeta').textContent=`駐車場情報PDF：${(info.pages||[info.page]).join('・')}ページ`;document.getElementById('pdfLink').href=`./parking-info.pdf#page=${info.page}`;updateParkingDistance(x.n,center)}else{card.classList.add('hidden')}document.getElementById('sheet').classList.add('open')}
 function updateParkingDistance(n,center){const p=savedParking[n],loc=document.getElementById('locBox'),walk=document.getElementById('walkLink'),drive=document.getElementById('parkingRouteLink');if(!p){loc.classList.add('hidden');walk.classList.add('hidden');drive.classList.add('hidden');return}const m=haversine({lat:p.lat,lng:p.lng},center);const mins=Math.max(1,Math.round(m/75));loc.textContent=`登録駐車位置 → 区域中心：直線 ${formatDist(m)} ／ 徒歩目安 約${mins}分（直線距離ベース）`;loc.classList.remove('hidden');drive.href=`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=driving`;drive.classList.remove('hidden');walk.href=`https://www.google.com/maps/dir/?api=1&origin=${p.lat},${p.lng}&destination=${center.lat},${center.lng}&travelmode=walking`;walk.classList.remove('hidden')}
 
-// Parking PDF: explicitly render the requested page via PDF.js; mobile PDF viewers may ignore #page.
+// Parking PDF: render exactly the mapped PDF page with PDF.js, independently of the phone's built-in PDF viewer.
 const parkingPdfOverlay=document.getElementById('parkingPdfOverlay');
 const parkingPdfExternal=document.getElementById('parkingPdfExternal');
 const parkingPdfCanvas=document.getElementById('parkingPdfCanvas');
-const parkingPdfPages=document.getElementById('parkingPdfPages');
 const parkingPdfHelp=document.getElementById('parkingPdfHelp');
-let parkingPdfDocPromise=null;
-let parkingPdfRenderTask=null;
-let parkingPdfRequest=0;
-function parkingPdfUrl(){const url=new URL('./parking-info.pdf',location.protocol==='file:'?'https://naoto-hata.github.io/territory-map/':window.location.href);url.searchParams.set('v','20261004-formfix');return url.href;}
-function closeParkingPdf(){parkingPdfRequest++;if(parkingPdfRenderTask){parkingPdfRenderTask.cancel();parkingPdfRenderTask=null;}parkingPdfOverlay.classList.remove('open');parkingPdfOverlay.setAttribute('aria-hidden','true');document.body.style.overflow='';document.getElementById('pdfLink').focus();}
-async function showParkingPdfPage(pageNo,n,request){
- if(request!==parkingPdfRequest)return;
- parkingPdfHelp.textContent=`区域 ${n}：駐車場情報PDFの${pageNo}ページを読み込み中…`;
- for(const btn of parkingPdfPages.querySelectorAll('button')){btn.classList.toggle('selected',Number(btn.dataset.page)===pageNo);}
+const parkingPdfScroll=document.getElementById('parkingPdfScroll');
+let parkingPdfDocPromise=null, parkingPdfPages=[],parkingPdfPosition=0,parkingPdfRenderToken=0;
+function parkingPdfUrl(){return new URL('./parking-info.pdf',location.protocol==='file:'?'https://naoto-hata.github.io/territory-map/':window.location.href).href;}
+async function renderParkingPdfPage(){
+ const token=++parkingPdfRenderToken, pageNum=parkingPdfPages[parkingPdfPosition];
+ const label=`${parkingPdfPosition+1}/${parkingPdfPages.length}（PDF ${pageNum}ページ）`;
+ document.getElementById('parkingPdfPageLabel').textContent=label;
+ document.getElementById('parkingPdfPrev').disabled=parkingPdfPosition===0;
+ document.getElementById('parkingPdfNext').disabled=parkingPdfPosition===parkingPdfPages.length-1;
+ parkingPdfHelp.textContent=`PDFの${pageNum}ページを読み込み中…`;
+ parkingPdfExternal.href=parkingPdfUrl()+`#page=${pageNum}`;
  try{
   await ensurePdfJs();
-  if(!parkingPdfDocPromise)parkingPdfDocPromise=pdfjsLib.getDocument({url:parkingPdfUrl(),withCredentials:false}).promise.catch(err=>{parkingPdfDocPromise=null;throw err;});
-  const doc=await parkingPdfDocPromise;
-  if(request!==parkingPdfRequest)return;
-  if(pageNo<1||pageNo>doc.numPages)throw new Error(`該当ページ${pageNo}がPDFにありません（総ページ${doc.numPages}）`);
-  if(parkingPdfRenderTask){try{parkingPdfRenderTask.cancel();await parkingPdfRenderTask.promise;}catch(e){}parkingPdfRenderTask=null;}
-  const page=await doc.getPage(pageNo);
-  if(request!==parkingPdfRequest)return;
-  const container=document.getElementById('parkingPdfContent');
+  if(!parkingPdfDocPromise)parkingPdfDocPromise=pdfjsLib.getDocument({url:parkingPdfUrl(),withCredentials:false}).promise.catch(e=>{parkingPdfDocPromise=null;throw e});
+  const doc=await parkingPdfDocPromise;if(token!==parkingPdfRenderToken)return;
+  const page=await doc.getPage(pageNum);if(token!==parkingPdfRenderToken)return;
   const base=page.getViewport({scale:1});
-  const scale=Math.max(.1,Math.min(2,(container.clientWidth-24)/base.width));
-  const dpr=Math.min(window.devicePixelRatio||1,2);
-  const viewport=page.getViewport({scale:scale*dpr});
-  parkingPdfCanvas.width=Math.floor(viewport.width);parkingPdfCanvas.height=Math.floor(viewport.height);
-  parkingPdfCanvas.style.width=Math.floor(viewport.width/dpr)+'px';parkingPdfCanvas.style.height=Math.floor(viewport.height/dpr)+'px';
-  const ctx=parkingPdfCanvas.getContext('2d',{alpha:false});
-  parkingPdfRenderTask=page.render({canvasContext:ctx,viewport});
-  await parkingPdfRenderTask.promise;
-  parkingPdfRenderTask=null;
-  if(request!==parkingPdfRequest)return;
-  parkingPdfHelp.textContent=`区域 ${n}：${pageNo}ページを表示中。別タブでは全ページのPDFが開きます。`;
-  container.scrollTop=0;
- }catch(err){if(err?.name==='RenderingCancelledException')return;console.error(err);if(request===parkingPdfRequest)parkingPdfHelp.textContent='該当ページを表示できません。PDFが同じフォルダにあるか確認してください。'+err.message;}
+  const cssWidth=Math.max(300,Math.min(950,parkingPdfScroll.clientWidth-22));
+  const zoom=cssWidth/base.width, dpr=Math.min(window.devicePixelRatio||1,2);
+  const vp=page.getViewport({scale:zoom*dpr});
+  const tmp=document.createElement('canvas');tmp.width=Math.ceil(vp.width);tmp.height=Math.ceil(vp.height);
+  await page.render({canvasContext:tmp.getContext('2d',{alpha:false}),viewport:vp}).promise;
+  if(token!==parkingPdfRenderToken)return;
+  parkingPdfCanvas.width=tmp.width;parkingPdfCanvas.height=tmp.height;
+  parkingPdfCanvas.style.width=Math.round(vp.width/dpr)+'px';parkingPdfCanvas.style.height=Math.round(vp.height/dpr)+'px';
+  parkingPdfCanvas.getContext('2d',{alpha:false}).drawImage(tmp,0,0);
+  parkingPdfScroll.scrollTop=0;
+  parkingPdfHelp.textContent=`区域 ${selectedTerritory?.x?.n||''}：${label}。入力文字も含めて表示しています。`;
+ }catch(e){console.error('Parking PDF:',e);parkingPdfHelp.textContent='駐車場PDFを表示できません。GitHubに修正版のparking-info.pdfがあるか確認してください。「別タブで開く」も使えます。';}
 }
-document.getElementById('pdfLink').addEventListener('click',function(e){
- e.preventDefault();const n=selectedTerritory?.x?.n||'';
- const info=parkingInfo[n];if(!info)return;
- const pages=info.pages||[info.page];
- const request=++parkingPdfRequest;
+function closeParkingPdf(){++parkingPdfRenderToken;parkingPdfOverlay.classList.remove('open');parkingPdfOverlay.setAttribute('aria-hidden','true');document.body.style.overflow='';document.getElementById('pdfLink').focus();}
+document.getElementById('pdfLink').addEventListener('click',e=>{
+ e.preventDefault();const n=selectedTerritory?.x?.n, info=parkingInfo[n];if(!info)return;
+ parkingPdfPages=info.pages||[info.page];parkingPdfPosition=0;
  document.getElementById('parkingPdfTitle').textContent=`区域 ${n} の駐車場情報`;
- parkingPdfExternal.href=parkingPdfUrl()+'#page='+pages[0];
- parkingPdfPages.replaceChildren();
- if(pages.length>1)for(const page of pages){const b=document.createElement('button');b.type='button';b.dataset.page=page;b.textContent=`${page}ページ`;b.addEventListener('click',()=>showParkingPdfPage(page,n,request));parkingPdfPages.appendChild(b);}
- parkingPdfOverlay.classList.add('open');parkingPdfOverlay.setAttribute('aria-hidden','false');
- document.body.style.overflow='hidden';document.getElementById('parkingPdfClose').focus();
- showParkingPdfPage(pages[0],n,request);
+ document.getElementById('parkingPdfNav').classList.toggle('hidden',parkingPdfPages.length<2);
+ parkingPdfOverlay.classList.add('open');parkingPdfOverlay.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
+ document.getElementById('parkingPdfClose').focus();renderParkingPdfPage();
 });
 document.getElementById('parkingPdfClose').addEventListener('click',closeParkingPdf);
+document.getElementById('parkingPdfPrev').addEventListener('click',()=>{if(parkingPdfPosition>0){parkingPdfPosition--;renderParkingPdfPage();}});
+document.getElementById('parkingPdfNext').addEventListener('click',()=>{if(parkingPdfPosition<parkingPdfPages.length-1){parkingPdfPosition++;renderParkingPdfPage();}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&parkingPdfOverlay.classList.contains('open'))closeParkingPdf()});
 
 document.getElementById('sheetClose').addEventListener('click',()=>document.getElementById('sheet').classList.remove('open'));
