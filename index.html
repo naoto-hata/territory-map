@@ -778,15 +778,37 @@ async function renderParkingPdfPage(){
   const doc=await parkingPdfDocPromise;if(token!==parkingPdfRenderToken)return;
   const page=await doc.getPage(pageNum);if(token!==parkingPdfRenderToken)return;
   const base=page.getViewport({scale:1});
+  // Page rows were checked against parking-info.pdf. Never show unrelated territories.
+  const territory=selectedTerritory?.x?.n||'';
+  const rowClips={
+    '009':{4:[60,245]},'016':{5:[245,430]},'022':{7:[615,800]},
+    '026':{3:[245,430]},'031':{6:[430,615]},'072':{6:[615,800]},
+    '096':{5:[430,615]},'098':{5:[60,245]},'103':{1:[269,455]},
+    '111':{7:[245,430]},'117':{4:[615,800]},'120':{2:[60,245]},
+    '133':{7:[60,245]},'152':{2:[245,430]},'153':{4:[245,430]},
+    '160':{2:[430,615]},'192':{1:[455,640]},'196':{5:[615,800]},
+    '197':{1:[640,825]},'222':{3:[430,615]},'234':{4:[430,615]},
+    '239':{6:[60,239]},'244':{3:[60,245]},'251':{7:[430,615]},
+    '261':{3:[615,800]},'270':{2:[615,800]}
+  };
+  // Area 022 continues on page 8; that page is wholly its own information.
+  const rect=rowClips[territory]?.[pageNum];
+  const x0=rect?51:0, x1=rect?base.width-35:base.width;
+  const y0=rect?rect[0]:0,y1=rect?rect[1]:base.height;
+  const clipWidth=x1-x0,clipHeight=y1-y0;
   const cssWidth=Math.max(300,Math.min(950,parkingPdfScroll.clientWidth-22));
-  const zoom=cssWidth/base.width, dpr=Math.min(window.devicePixelRatio||1,2);
+  const zoom=cssWidth/clipWidth,dpr=Math.min(window.devicePixelRatio||1,2);
   const vp=page.getViewport({scale:zoom*dpr});
   const tmp=document.createElement('canvas');tmp.width=Math.ceil(vp.width);tmp.height=Math.ceil(vp.height);
   await page.render({canvasContext:tmp.getContext('2d',{alpha:false}),viewport:vp}).promise;
   if(token!==parkingPdfRenderToken)return;
-  parkingPdfCanvas.width=tmp.width;parkingPdfCanvas.height=tmp.height;
-  parkingPdfCanvas.style.width=Math.round(vp.width/dpr)+'px';parkingPdfCanvas.style.height=Math.round(vp.height/dpr)+'px';
-  parkingPdfCanvas.getContext('2d',{alpha:false}).drawImage(tmp,0,0);
+  const pixelWidth=Math.floor(clipWidth*zoom*dpr),pixelHeight=Math.floor(clipHeight*zoom*dpr);
+  parkingPdfCanvas.width=pixelWidth;parkingPdfCanvas.height=pixelHeight;
+  parkingPdfCanvas.style.width=Math.round(pixelWidth/dpr)+'px';
+  parkingPdfCanvas.style.height=Math.round(pixelHeight/dpr)+'px';
+  parkingPdfCanvas.getContext('2d',{alpha:false}).drawImage(tmp,
+    Math.round(x0*zoom*dpr),Math.round(y0*zoom*dpr),pixelWidth,pixelHeight,
+    0,0,pixelWidth,pixelHeight);
   parkingPdfScroll.scrollTop=0;
   parkingPdfHelp.textContent=`区域 ${selectedTerritory?.x?.n||''}：${label}。入力文字も含めて表示しています。`;
  }catch(e){console.error('Parking PDF:',e);parkingPdfHelp.textContent='駐車場PDFを表示できません。GitHubに修正版のparking-info.pdfがあるか確認してください。「別タブで開く」も使えます。';}
