@@ -1,5 +1,5 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>区域統合マップ スマホ＋区域PDF＋駐車情報</title>
+<title>区域統合マップ スマホ＋区域PDF＋駐車情報＋クラウド共有</title>
 <style>/* required styles */
 
 .leaflet-pane,
@@ -686,7 +686,16 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .parking-pdf-toolbar button,.parking-pdf-toolbar a{font:700 15px system-ui,sans-serif;min-height:44px;padding:10px 12px;border-radius:9px;border:0;text-decoration:none;display:inline-flex;align-items:center}
 .parking-pdf-toolbar button{background:#1a73e8;color:#fff}.parking-pdf-toolbar a{background:#edf2f8;color:#202124}
 .parking-pdf-frame{width:100%;flex:1;min-height:0;overflow:auto;background:#f5f6f8;text-align:center;padding:10px}.parking-pdf-frame canvas{display:inline-block;background:#fff;max-width:100%;height:auto;box-shadow:0 1px 10px #0002}.parking-pdf-nav{display:flex;align-items:center;justify-content:center;gap:14px;padding:8px;background:#fff;border-top:1px solid #ddd}.parking-pdf-nav button{padding:9px 12px;min-height:42px;border:0;border-radius:8px;background:#e8f0fe;color:#174ea6;font-weight:700}.parking-pdf-nav button:disabled{opacity:.35}.parking-pdf-help{padding:5px 12px;font:12px system-ui,sans-serif;color:#56606e}
-</style></head><body><noscript><div style="position:fixed;inset:0;z-index:10000;background:white;padding:30px;font:16px/1.8 sans-serif">このファイルプレビューでは地図の操作機能を実行できません。修正版を元のWebサイトの index.html に置き換え、SafariでサイトのURLを開いてください。</div></noscript><div class="app"><aside class="side"><div class="head"><h1>区域統合マップ <span class="badge">スマホ試作</span></h1><div class="sub">区域線＋番号を高速表示。区域を押すと、元のGoogleマイマップ、国土地理院の区域図PDF、ルート、駐車情報へ進めます。2回目以降はブラウザのキャッシュを利用します。</div></div><div class="controls"><input id="q" inputmode="numeric" placeholder="区域番号（例 152）"><button id="go">表示</button><button class="secondary" id="loadall">全区域線を読み込む</button></div><div class="status"><div id="stat">No.001を表示後、全区域を読み込みます。</div><div class="bar"><i id="prog"></i></div></div><div class="list" id="list"></div></aside><main class="mapwrap"><div id="map"></div><div id="instantBadge" class="instant-badge">区域を準備中…</div><div class="legend"><b>緑枠＝駐車情報あり</b><br>駐車位置は未登録ならPDFを参照。登録後は直線距離と徒歩目安を表示。</div><section class="sheet" id="sheet" aria-live="polite"><div class="sheet-head"><div class="sheet-title" id="sheetTitle">区域</div><button class="sheet-close" id="sheetClose" aria-label="閉じる">×</button></div><div class="sheet-actions"><a class="primary" id="myMapLink" target="_blank">元のGoogleマイマップを開く</a><button class="secondary" id="territoryPdfLink" type="button">区域地図PDF（国土地理院）を開く</button><a class="secondary" id="areaRouteLink" target="_blank">区域中心までルート</a></div><div id="parkingCard" class="parking-card hidden"><h3>🅿 駐車情報あり</h3><div class="parking-note" id="parkingNote"></div><div class="parking-meta" id="parkingMeta"></div><div class="sheet-actions"><a class="secondary" id="pdfLink" href="#">駐車場情報PDFの該当ページを開く</a><a class="secondary hidden" id="parkingRouteLink" target="_blank">駐車場所まで車でナビ</a><a class="secondary hidden" id="walkLink" target="_blank">駐車場所から区域まで徒歩ルート</a></div><div id="locBox" class="locbox hidden"></div><div class="park-register"><button class="set" id="setParking">この区域の駐車位置を地図で登録</button><button class="clear" id="clearParking">登録位置を削除</button></div><div class="hint">試作では、駐車位置を地図上で1回タップして登録します。登録はこの端末内だけに保存されます。直線距離と徒歩目安は参考値で、実際の徒歩経路・時間はGoogle Mapsで確認します。</div></div></section><section class="pdf-viewer" id="territoryPdfViewer" aria-hidden="true">
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<style>
+.controls #adminAuthBtn{background:#eef2f7;color:#202124;border:1px solid #d0d4d9}
+.admin-state{font-size:11px;color:#5f6368;text-align:center;min-height:16px}
+.auth-overlay{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.42);display:none;align-items:center;justify-content:center;padding:18px}.auth-overlay.open{display:flex}.auth-card{width:min(420px,100%);background:#fff;border-radius:16px;box-shadow:0 14px 44px rgba(0,0,0,.3);padding:18px}.auth-card h2{margin:0 0 6px;font-size:20px}.auth-card p{margin:0 0 14px;font-size:13px;color:#5f6368;line-height:1.5}.auth-card label{display:block;font-size:12px;font-weight:700;margin:10px 0 5px}.auth-card input{width:100%;min-height:44px;border:1px solid #cbd0d6;border-radius:10px;padding:10px 12px;font-size:16px}.auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.auth-actions button{min-height:44px;border:0;border-radius:10px;font-weight:700;font-size:15px}.auth-cancel{background:#eef2f7;color:#202124}.auth-submit{background:#1a73e8;color:#fff}.auth-error{min-height:18px;color:#b3261e;font-size:12px;margin-top:8px}.cloud-badge{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:#e6f4ea;color:#137333;font-size:10px;font-weight:800}
+@media(max-width:1100px){.controls #adminAuthBtn{grid-column:1/-1;min-height:38px;font-size:13px}.admin-state{grid-column:1/-1}.side{max-height:none}}
+</style></head><body><noscript><div style="position:fixed;inset:0;z-index:10000;background:white;padding:30px;font:16px/1.8 sans-serif">このファイルプレビューでは地図の操作機能を実行できません。修正版を元のWebサイトの index.html に置き換え、SafariでサイトのURLを開いてください。</div></noscript><div class="app"><aside class="side"><div class="head"><h1>区域統合マップ <span class="badge">スマホ試作</span></h1><div class="sub">区域線＋番号を高速表示。区域を押すと、元のGoogleマイマップ、国土地理院の区域図PDF、ルート、駐車情報へ進めます。2回目以降はブラウザのキャッシュを利用します。</div></div><div class="controls"><input id="q" inputmode="numeric" placeholder="区域番号（例 152）"><button id="go">表示</button><button class="secondary" id="loadall">全区域線を読み込む</button><button class="secondary" id="adminAuthBtn" type="button">管理者ログイン</button><div class="admin-state" id="adminState">駐車位置：クラウド共有</div></div><div class="status"><div id="stat">No.001を表示後、全区域を読み込みます。</div><div class="bar"><i id="prog"></i></div></div><div class="list" id="list"></div></aside><main class="mapwrap"><div id="map"></div><div id="instantBadge" class="instant-badge">区域を準備中…</div><div class="legend"><b>緑枠＝駐車情報あり</b><br>駐車位置は未登録ならPDFを参照。登録後は直線距離と徒歩目安を表示。</div><section class="sheet" id="sheet" aria-live="polite"><div class="sheet-head"><div class="sheet-title" id="sheetTitle">区域</div><button class="sheet-close" id="sheetClose" aria-label="閉じる">×</button></div><div class="sheet-actions"><a class="primary" id="myMapLink" target="_blank">元のGoogleマイマップを開く</a><button class="secondary" id="territoryPdfLink" type="button">区域地図PDF（国土地理院）を開く</button><a class="secondary" id="areaRouteLink" target="_blank">区域中心までルート</a></div><div id="parkingCard" class="parking-card hidden"><h3>🅿 駐車情報あり</h3><div class="parking-note" id="parkingNote"></div><div class="parking-meta" id="parkingMeta"></div><div class="sheet-actions"><a class="secondary" id="pdfLink" href="#">駐車場情報PDFの該当ページを開く</a><a class="secondary hidden" id="parkingRouteLink" target="_blank">駐車場所まで車でナビ</a><a class="secondary hidden" id="walkLink" target="_blank">駐車場所から区域まで徒歩ルート</a></div><div id="locBox" class="locbox hidden"></div><div class="park-register admin-only" id="parkingAdminControls" style="display:none"><button class="set" id="setParking">この区域の駐車位置を地図で登録</button><button class="clear" id="clearParking">登録位置を削除</button></div><div class="hint" id="parkingHint">駐車位置はクラウドで共有され、登録済みの位置は全端末に表示されます。直線距離と徒歩目安は参考値で、実際の徒歩経路・時間はGoogle Mapsで確認します。</div></div></section><section class="pdf-viewer" id="territoryPdfViewer" aria-hidden="true">
 <div class="pdf-topbar"><button class="pdf-close" id="pdfViewerClose" type="button">← 地図に戻る</button><div class="pdf-title" id="pdfViewerTitle">区域地図</div><button class="pdf-download" id="pdfViewerDownload" type="button">この区域PDFを保存</button></div>
 <div class="pdf-body"><div class="pdf-canvas-wrap"><canvas id="territoryPdfCanvas"></canvas></div></div>
 <div class="pdf-status" id="pdfViewerStatus">読み込み中...</div>
@@ -696,6 +705,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <div class="parking-pdf-frame" id="parkingPdfScroll"><canvas id="parkingPdfCanvas" aria-label="駐車場情報PDFの該当ページ"></canvas></div>
 <div class="parking-pdf-help" id="parkingPdfHelp" role="status">該当ページを読み込みます。</div><div class="parking-pdf-nav hidden" id="parkingPdfNav"><button id="parkingPdfPrev" type="button">← 前のページ</button><span id="parkingPdfPageLabel"></span><button id="parkingPdfNext" type="button">次のページ →</button></div>
 </section>
+<section class="auth-overlay" id="authOverlay" aria-hidden="true">
+<div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+<h2 id="authTitle">管理者ログイン</h2><p>駐車位置の登録・変更・削除を行う管理者だけログインしてください。閲覧にはログイン不要です。</p>
+<form id="authForm"><label for="authEmail">メールアドレス</label><input id="authEmail" type="email" autocomplete="username" required><label for="authPassword">パスワード</label><input id="authPassword" type="password" autocomplete="current-password" required><div class="auth-error" id="authError"></div><div class="auth-actions"><button class="auth-cancel" id="authCancel" type="button">キャンセル</button><button class="auth-submit" id="authSubmit" type="submit">ログイン</button></div></form>
+</div></section>
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
  * (c) 2010-2023 Vladimir Agafonkin, (c) 2010-2011 CloudMade
@@ -738,6 +752,18 @@ const parkingInfo={
 "270":{page:2,note:"2・3・4番のうち空いている枠が可。"}
 };
 const parkingStoreKey='territoryParkingPositionsV5';
+const firebaseConfig={
+  apiKey:'AIzaSyDpeDUWLAIbl0duo5JOUohf0a7REG71cIc',
+  authDomain:'territory-map-421b7.firebaseapp.com',
+  projectId:'territory-map-421b7',
+  storageBucket:'territory-map-421b7.firebasestorage.app',
+  messagingSenderId:'799467280290',
+  appId:'1:799467280290:web:06f74245c3ec4b1d4804fb',
+  measurementId:'G-6VXT2X8YZF'
+};
+const ADMIN_UID='LGqbTVTaLXcIiyjuNoFmtvRzWLd2';
+let firebaseApp=null,auth=null,firestore=null,isAdmin=false,cloudSnapshotSeen=false,cloudHasData=false;
+try{firebaseApp=firebase.apps?.length?firebase.app():firebase.initializeApp(firebaseConfig);auth=firebase.auth();firestore=firebase.firestore();}catch(e){console.error('Firebase初期化エラー',e);}
 let savedParking={};
 try{const p=JSON.parse(localStorage.getItem(parkingStoreKey)||'{}');if(p&&typeof p==='object'&&!Array.isArray(p))savedParking=p;}catch(e){console.warn('駐車位置の保存データを読み込めません',e);}
 for(const n of Object.keys(savedParking)){const p=savedParking[n];if(!p||!Number.isFinite(p.lat)||!Number.isFinite(p.lng))delete savedParking[n];}
@@ -746,6 +772,64 @@ function saveParking(){try{localStorage.setItem(parkingStoreKey,JSON.stringify(s
 function haversine(a,b){const R=6371000,rad=x=>x*Math.PI/180;const dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng);const s=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s))}
 function formatDist(m){return m<1000?`${Math.round(m/10)*10} m`:`${(m/1000).toFixed(1)} km`}
 function showParkingMarker(n){const p=savedParking[n];if(!p)return;if(parkingMarkers.has(n))map.removeLayer(parkingMarkers.get(n));const m=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:'<div class="parking-pin">P</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(map);m.bindTooltip(`区域 ${n} 駐車位置`);parkingMarkers.set(n,m)}
+const legacyParkingForMigration=JSON.parse(JSON.stringify(savedParking));
+function setAdminUi(){
+ const btn=document.getElementById('adminAuthBtn'),state=document.getElementById('adminState'),controls=document.getElementById('parkingAdminControls');
+ if(!btn)return;
+ if(isAdmin){btn.textContent='管理者ログアウト';state.textContent='管理者ログイン中・駐車位置は全端末に共有';if(controls)controls.style.display='grid';}
+ else{btn.textContent='管理者ログイン';state.textContent=firestore?'駐車位置：クラウド共有':'クラウド接続エラー';if(controls)controls.style.display='none';}
+}
+function refreshParkingMarkersFromState(){
+ for(const [n,m] of [...parkingMarkers.entries()]){if(!savedParking[n]){map.removeLayer(m);parkingMarkers.delete(n);}}
+ Object.keys(savedParking).forEach(showParkingMarker);
+ try{saveParking()}catch(e){}
+ if(selectedTerritory)updateParkingDistance(selectedTerritory.x.n,selectedTerritory.center);
+ if(typeof renderList==='function')renderList();
+}
+function startParkingCloudSync(){
+ if(!firestore){setAdminUi();return;}
+ firestore.collection('parkingPositions').onSnapshot(snapshot=>{
+   cloudSnapshotSeen=true;cloudHasData=!snapshot.empty;
+   if(snapshot.empty){
+     // Firestoreを正として表示を統一。旧ローカル登録は別コピーから管理者ログイン時に一度だけ移行できる。
+     savedParking={};refreshParkingMarkersFromState();
+     if(isAdmin)migrateLegacyParkingIfNeeded();
+     return;
+   }
+   const next={};
+   snapshot.forEach(doc=>{const d=doc.data()||{},lat=Number(d.lat),lng=Number(d.lng);if(Number.isFinite(lat)&&Number.isFinite(lng))next[doc.id]={lat,lng};});
+   savedParking=next;refreshParkingMarkersFromState();
+ },e=>{console.error('駐車位置同期エラー',e);const state=document.getElementById('adminState');if(state)state.textContent='駐車位置：オフライン（端末キャッシュ表示）';});
+}
+async function migrateLegacyParkingIfNeeded(){
+ if(!isAdmin||!firestore||!cloudSnapshotSeen||cloudHasData)return;
+ const entries=Object.entries(legacyParkingForMigration).filter(([,p])=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng));
+ if(!entries.length)return;
+ try{
+   const batch=firestore.batch();
+   for(const [n,p] of entries){batch.set(firestore.collection('parkingPositions').doc(n),{lat:p.lat,lng:p.lng,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:ADMIN_UID});}
+   await batch.commit();
+   document.getElementById('stat').textContent=`この端末にあった駐車位置 ${entries.length}件をクラウドへ移行しました。`;
+ }catch(e){console.error(e);alert('端末内の既存駐車位置をクラウドへ移行できませんでした。');}
+}
+async function saveSharedParking(n,lat,lng){
+ if(!isAdmin||!auth?.currentUser){alert('駐車位置の登録には管理者ログインが必要です。');return false;}
+ try{await firestore.collection('parkingPositions').doc(n).set({lat,lng,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:auth.currentUser.uid});return true;}
+ catch(e){console.error(e);alert('駐車位置をクラウドへ保存できませんでした。');return false;}
+}
+async function deleteSharedParking(n){
+ if(!isAdmin||!auth?.currentUser){alert('駐車位置の削除には管理者ログインが必要です。');return false;}
+ try{await firestore.collection('parkingPositions').doc(n).delete();return true;}
+ catch(e){console.error(e);alert('駐車位置をクラウドから削除できませんでした。');return false;}
+}
+const authOverlay=document.getElementById('authOverlay'),authForm=document.getElementById('authForm'),authError=document.getElementById('authError');
+function openAuthDialog(){authError.textContent='';authOverlay.classList.add('open');authOverlay.setAttribute('aria-hidden','false');setTimeout(()=>document.getElementById('authEmail').focus(),50);}
+function closeAuthDialog(){authOverlay.classList.remove('open');authOverlay.setAttribute('aria-hidden','true');document.getElementById('authPassword').value='';}
+document.getElementById('authCancel').addEventListener('click',closeAuthDialog);
+authOverlay.addEventListener('click',e=>{if(e.target===authOverlay)closeAuthDialog();});
+document.getElementById('adminAuthBtn').addEventListener('click',async()=>{if(isAdmin){if(confirm('管理者ログアウトしますか？'))await auth.signOut();}else openAuthDialog();});
+authForm.addEventListener('submit',async e=>{e.preventDefault();authError.textContent='';const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,submit=document.getElementById('authSubmit');submit.disabled=true;submit.textContent='ログイン中…';try{const cred=await auth.signInWithEmailAndPassword(email,password);if(cred.user.uid!==ADMIN_UID){await auth.signOut();throw new Error('このアカウントには管理権限がありません。');}closeAuthDialog();}catch(err){console.error(err);authError.textContent=err.message==='このアカウントには管理権限がありません。'?err.message:'メールアドレスまたはパスワードを確認してください。';}finally{submit.disabled=false;submit.textContent='ログイン';}});
+if(auth){auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});auth.onAuthStateChanged(async user=>{isAdmin=!!user&&user.uid===ADMIN_UID;setAdminUi();if(user&&!isAdmin)await auth.signOut();if(isAdmin)await migrateLegacyParkingIfNeeded();});}else setAdminUi();
 
 function territoryPdfInfo(nValue){
   const n=Number.parseInt(String(nValue),10);
@@ -753,7 +837,7 @@ function territoryPdfInfo(nValue){
   return {file:'territory-maps.pdf', page:n};
 }
 let currentTerritoryPdf=null;
-function openSheet(x,center){selectedTerritory={x,center};document.getElementById('sheetTitle').textContent=`区域 ${x.n}`;document.getElementById('myMapLink').href=`https://www.google.com/maps/d/viewer?mid=${encodeURIComponent(x.mid)}`;const tpdf=territoryPdfInfo(x.n);currentTerritoryPdf=tpdf;document.getElementById('territoryPdfLink').disabled=!tpdf;document.getElementById('areaRouteLink').href=`https://www.google.com/maps/dir/?api=1&destination=${center.lat},${center.lng}`;const info=parkingInfo[x.n],card=document.getElementById('parkingCard');if(info){card.classList.remove('hidden');document.getElementById('parkingNote').textContent=info.note;document.getElementById('parkingMeta').textContent=`駐車場情報PDF：${(info.pages||[info.page]).join('・')}ページ`;document.getElementById('pdfLink').href=`./parking-info.pdf#page=${info.page}`;updateParkingDistance(x.n,center)}else{card.classList.add('hidden')}document.getElementById('sheet').classList.add('open')}
+function openSheet(x,center){selectedTerritory={x,center};setAdminUi();document.getElementById('sheetTitle').textContent=`区域 ${x.n}`;document.getElementById('myMapLink').href=`https://www.google.com/maps/d/viewer?mid=${encodeURIComponent(x.mid)}`;const tpdf=territoryPdfInfo(x.n);currentTerritoryPdf=tpdf;document.getElementById('territoryPdfLink').disabled=!tpdf;document.getElementById('areaRouteLink').href=`https://www.google.com/maps/dir/?api=1&destination=${center.lat},${center.lng}`;const info=parkingInfo[x.n],card=document.getElementById('parkingCard');if(info){card.classList.remove('hidden');document.getElementById('parkingNote').textContent=info.note;document.getElementById('parkingMeta').textContent=`駐車場情報PDF：${(info.pages||[info.page]).join('・')}ページ`;document.getElementById('pdfLink').href=`./parking-info.pdf#page=${info.page}`;updateParkingDistance(x.n,center)}else{card.classList.add('hidden')}document.getElementById('sheet').classList.add('open')}
 function updateParkingDistance(n,center){const p=savedParking[n],loc=document.getElementById('locBox'),walk=document.getElementById('walkLink'),drive=document.getElementById('parkingRouteLink');if(!p){loc.classList.add('hidden');walk.classList.add('hidden');drive.classList.add('hidden');return}const m=haversine({lat:p.lat,lng:p.lng},center);const mins=Math.max(1,Math.round(m/75));loc.textContent=`登録駐車位置 → 区域中心：直線 ${formatDist(m)} ／ 徒歩目安 約${mins}分（直線距離ベース）`;loc.classList.remove('hidden');drive.href=`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=driving`;drive.classList.remove('hidden');walk.href=`https://www.google.com/maps/dir/?api=1&origin=${p.lat},${p.lng}&destination=${center.lat},${center.lng}&travelmode=walking`;walk.classList.remove('hidden')}
 
 // Parking PDF: render exactly the mapped PDF page with PDF.js, independently of the phone's built-in PDF viewer.
@@ -867,8 +951,8 @@ document.getElementById('pdfViewerDownload').addEventListener('click',async()=>{
   }catch(e){console.error(e);territoryPdfStatus.className='pdf-status pdf-error';territoryPdfStatus.textContent='この区域PDFの作成に失敗しました。';}
   finally{btn.disabled=false;btn.textContent=old;}
 });
-document.getElementById('setParking').addEventListener('click',()=>{if(!selectedTerritory)return;placingParkingFor=selectedTerritory.x.n;document.getElementById('stat').textContent=`区域 ${placingParkingFor}：地図上の駐車位置を1回タップしてください。`;document.getElementById('sheet').classList.remove('open')});
-document.getElementById('clearParking').addEventListener('click',()=>{if(!selectedTerritory)return;const n=selectedTerritory.x.n;delete savedParking[n];saveParking();if(parkingMarkers.has(n)){map.removeLayer(parkingMarkers.get(n));parkingMarkers.delete(n)}updateParkingDistance(n,selectedTerritory.center)});
+document.getElementById('setParking').addEventListener('click',()=>{if(!selectedTerritory)return;if(!isAdmin){openAuthDialog();return;}placingParkingFor=selectedTerritory.x.n;document.getElementById('stat').textContent=`区域 ${placingParkingFor}：地図上の駐車位置を1回タップしてください。`;document.getElementById('sheet').classList.remove('open')});
+document.getElementById('clearParking').addEventListener('click',async()=>{if(!selectedTerritory)return;if(!isAdmin){openAuthDialog();return;}const n=selectedTerritory.x.n;if(!savedParking[n])return;if(!confirm(`区域 ${n} の共有駐車位置を削除しますか？`))return;const ok=await deleteSharedParking(n);if(ok)document.getElementById('stat').textContent=`区域 ${n} の共有駐車位置を削除しました。`;});
 const manualFallback={
  '258':{
   source:'PDF復元',
@@ -962,6 +1046,8 @@ async function restoreBoundariesFromCache(){
 const map=L.map('map',{preferCanvas:true}).setView([34.710,137.730],14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
 Object.keys(savedParking).forEach(showParkingMarker);
+startParkingCloudSync();
+setAdminUi();
 const layers=new Map(); const statusMap=new Map(); let bulkLoading=false;
 const list=document.getElementById('list'), stat=document.getElementById('stat'), prog=document.getElementById('prog');
 function renderList(){list.innerHTML=''; for(const x of manifest){const d=document.createElement('div');d.className='item';d.innerHTML=`<span class="num">${x.n}</span><span class="badge ${statusMap.get(x.n)==='error'?'err':''}">${statusMap.get(x.n)||'未読込'}</span>${parkingInfo[x.n]?'<span class="park-mini" title="駐車情報あり">🅿</span>':''}`;d.onclick=()=>loadOne(x,true);list.appendChild(d)}}
@@ -1026,7 +1112,7 @@ async function loadAll(){
   }
 }
 
-map.on('click',e=>{if(!placingParkingFor)return;const n=placingParkingFor;savedParking[n]={lat:e.latlng.lat,lng:e.latlng.lng};saveParking();showParkingMarker(n);placingParkingFor=null;const x=manifest.find(v=>v.n===n);const g=layers.get(n);const center=g?g.getBounds().getCenter():e.latlng;openSheet(x,center);document.getElementById('stat').textContent=`区域 ${n} の駐車位置を登録しました。`;});
+map.on('click',async e=>{if(!placingParkingFor)return;const n=placingParkingFor;if(!isAdmin){placingParkingFor=null;openAuthDialog();return;}const lat=e.latlng.lat,lng=e.latlng.lng;placingParkingFor=null;document.getElementById('stat').textContent=`区域 ${n} の共有駐車位置を保存中…`;const ok=await saveSharedParking(n,lat,lng);const x=manifest.find(v=>v.n===n),g=layers.get(n),center=g?g.getBounds().getCenter():e.latlng;if(ok){savedParking[n]={lat,lng};showParkingMarker(n);saveParking();openSheet(x,center);document.getElementById('stat').textContent=`区域 ${n} の駐車位置を全端末共有で登録しました。`;}else openSheet(x,center);});
 document.getElementById('loadall').onclick=loadAll;document.getElementById('go').onclick=()=>{let n=document.getElementById('q').value.trim().replace(/\D/g,'');if(!n)return;n=n.padStart(3,'0');const x=manifest.find(v=>v.n===n);if(!x){alert('区域が見つかりません');return}loadOne(x,true)};document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('go').click()});
 loadAll().catch(e=>{stat.textContent='地図を表示できません：'+e.message;document.getElementById('instantBadge').textContent=stat.textContent;});
 </script></body></html>
