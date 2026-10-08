@@ -750,6 +750,11 @@ const parkingInfo={
 "261":{page:3,note:"マンション エーデルワイスの一番奥（1番）。"},
 "270":{page:2,note:"2・3・4番のうち空いている枠が可。"}
 };
+
+const labelPositionOverrides={
+  "250":[34.72940877,137.75646311],
+  "251":[34.72997454,137.75560649]
+};
 const parkingStoreKey='territoryParkingPositionsV5';
 const firebaseConfig={
   apiKey:'AIzaSyCOs970XCvqP4ADC-ywyJF7CijPFA7DZBY',
@@ -1061,7 +1066,7 @@ async function loadOne(x,focus=false){
   const group=L.featureGroup();
   const polygons=L.geoJSON(feature,{style:{color:'#202124',weight:4,fill:false,opacity:.9}}).addTo(group);
   group.addTo(map);const b=group.getBounds(),center=b.getCenter();
-  const marker=L.marker(center,{icon:L.divIcon({className:'',html:`<div class="area-label ${parkingInfo[x.n]?'has-parking':''}">${x.n}</div>`,iconSize:null})}).addTo(group);
+  const labelPos=labelPositionOverrides[x.n]||center;const marker=L.marker(labelPos,{icon:L.divIcon({className:'',html:`<div class="area-label ${parkingInfo[x.n]?'has-parking':''}">${x.n}</div>`,iconSize:null})}).addTo(group);
   marker.on('click',()=>{if(!placingParkingFor)openSheet(x,center)});
   polygons.on('click',()=>{if(!placingParkingFor)openSheet(x,center)});
   layers.set(x.n,group);statusMap.set(x.n,'表示中');
