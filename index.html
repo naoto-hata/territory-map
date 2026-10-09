@@ -950,7 +950,7 @@ function updateParkingDistance(n,center){
   const info=[point.conditions,point.capacity?`駐車可能：${point.capacity}台`:null,point.memo].filter(Boolean).join('\n');if(info){const detail=document.createElement('div');detail.className='parking-condition';detail.textContent=info;row.append(detail)}
   const links=document.createElement('div');links.className='parking-place-links';for(const [label,href] of [['車でナビ',`https://www.google.com/maps/dir/?api=1&destination=${point.lat},${point.lng}&travelmode=driving`],['区域まで徒歩',`https://www.google.com/maps/dir/?api=1&origin=${point.lat},${point.lng}&destination=${center.lat},${center.lng}&travelmode=walking`]]){const a=document.createElement('a');a.textContent=label;a.href=href;a.target='_blank';a.rel='noopener noreferrer';links.append(a)}row.append(links);list.append(row);
  });
- document.getElementById('parkingHint').textContent=`登録済み ${points.length}か所。${isAdmin?'追加した位置は全端末に共有されます。':'追加した位置はこの端末に保存されます。'}徒歩目安は直線距離に基づく参考値です。（版：20261009-ipad1）`;
+ document.getElementById('parkingHint').textContent=`登録済み ${points.length}か所。${isAdmin?'追加した位置は全端末に共有されます。':'追加した位置はこの端末に保存されます。'}徒歩目安は直線距離に基づく参考値です。（版：20261009-pc2）`;
 }
 
 function parkingDetailsFromForm(){
@@ -1198,9 +1198,10 @@ function renderCachedRecord(rec){
   }
   group.addTo(map);
   const center=L.latLng(rec.center[0],rec.center[1]);
-  const marker=L.marker(center,{icon:L.divIcon({className:'',html:`<div class="area-label ${hasParking(x.n)?'has-parking':''}">${x.n}</div>`,iconSize:null})}).addTo(map);
-  marker.on('click',()=>openSheet(x,center));
-  group.eachLayer(l=>l.on('click',()=>openSheet(x,center)));
+  const labelPos=labelPositionOverrides[x.n]||center;
+  const marker=L.marker(labelPos,{icon:L.divIcon({className:'',html:`<div class="area-label ${hasParking(x.n)?'has-parking':''}">${x.n}</div>`,iconSize:null})}).addTo(map);
+  marker.on('click',()=>safeOpenArea(x,center));
+  group.eachLayer(l=>l.on('click',()=>safeOpenArea(x,center)));
   group.addLayer(marker);
   layers.set(x.n,group); statusMap.set(x.n,rec.status||'キャッシュ');
   return true;
@@ -1234,12 +1235,12 @@ startParkingCloudSync();
 setAdminUi();
 const layers=new Map(); const statusMap=new Map(); let bulkLoading=false;
 const list=document.getElementById('list'), stat=document.getElementById('stat'), prog=document.getElementById('prog');
-function renderList(){list.innerHTML=''; for(const x of manifest){const d=document.createElement('div');d.className='item';d.innerHTML=`<span class="num">${x.n}</span><span class="badge ${statusMap.get(x.n)==='error'?'err':''}">${statusMap.get(x.n)||'未読込'}</span>${hasParking(x.n)?'<span class="park-mini" title="駐車情報あり">🅿</span>':''}`;d.onclick=()=>loadOne(x,true);list.appendChild(d)}}
+function renderList(){list.innerHTML=''; for(const x of manifest){const d=document.createElement('div');d.className='item';d.innerHTML=`<span class="num">${x.n}</span><span class="badge ${statusMap.get(x.n)==='error'?'err':''}">${statusMap.get(x.n)||'未読込'}</span>${hasParking(x.n)?'<span class="park-mini" title="駐車情報あり">🅿</span>':''}`;d.setAttribute('role','button');d.tabIndex=0;d.setAttribute('aria-label',`区域 ${x.n} を開く`);d.onclick=()=>loadOne(x,true);d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();loadOne(x,true)}};list.appendChild(d)}}
 renderList();
 function kmlUrl(mid){return `https://www.google.com/maps/d/kml?mid=${encodeURIComponent(mid)}&forcekml=1`}
 function coordsFromText(t){return t.trim().split(/\s+/).map(s=>s.split(',')).filter(a=>a.length>=2).map(a=>[parseFloat(a[1]),parseFloat(a[0])]).filter(a=>Number.isFinite(a[0])&&Number.isFinite(a[1]))}
 function makePopup(x,center){const lat=center.lat.toFixed(6),lng=center.lng.toFixed(6);return `<div class="popup-title">区域 ${x.n}</div><div class="popup-links"><a target="_blank" href="https://www.google.com/maps/d/viewer?mid=${encodeURIComponent(x.mid)}">Googleマイマップで開く</a><a target="_blank" href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}">Google Mapsで区域付近を開く</a><a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking">現在地から徒歩ルート</a></div>`}
-const AREA_UI_VERSION='20261009-ipad1';
+const AREA_UI_VERSION='20261009-pc2';
 function reportAreaOpenError(error){
  console.error('区域画面',error);const box=document.getElementById('areaOpenError'),text=document.getElementById('areaOpenErrorText');if(!box||!text)return;
  text.textContent=`区域画面を開けませんでした（${AREA_UI_VERSION}）：${String(error?.message||error||'不明なエラー').slice(0,180)}`;box.classList.remove('hidden');
@@ -1250,14 +1251,30 @@ function safeOpenArea(x,center){
  lastAreaOpen={number:x.n,time:now};try{document.getElementById('areaOpenError').classList.add('hidden');openSheet(x,center);}catch(error){reportAreaOpenError(error)}
 }
 document.getElementById('areaOpenErrorClose').addEventListener('click',()=>document.getElementById('areaOpenError').classList.add('hidden'));
-// Native pointer fallback for number labels, with drag suppression.
-let areaPointerStart=null;
-document.addEventListener('pointerdown',e=>{const label=e.target?.closest?.('.area-label');areaPointerStart=label?{id:e.pointerId,x:e.clientX,y:e.clientY,time:Date.now(),number:label.textContent.trim()}:null;},true);
-document.addEventListener('pointercancel',()=>{areaPointerStart=null},true);
+// Native click for mouse/keyboard, and pointer fallback for touch, with drag suppression.
+let areaPointerStart=null,areaClickBlock=null;
+function areaLabelFromTarget(target){return target?.closest?.('.area-label')||target?.closest?.('.leaflet-marker-icon')?.querySelector?.('.area-label')||null}
+function openAreaLabel(label){
+ if(!label||placingParkingFor)return;
+ const number=label.textContent.trim(),x=manifest.find(v=>v.n===number);if(!x)return;
+ const g=layers.get(number);if(g){try{safeOpenArea(x,g.getBounds().getCenter())}catch(error){reportAreaOpenError(error)}}else loadOne(x,true);
+}
+document.addEventListener('pointerdown',e=>{
+ const label=areaLabelFromTarget(e.target);areaClickBlock=null;
+ areaPointerStart=label&&(e.button===undefined||e.button===0)?{id:e.pointerId,x:e.clientX,y:e.clientY,time:Date.now(),number:label.textContent.trim()}:null;
+},true);
+document.addEventListener('pointercancel',()=>{if(areaPointerStart)areaClickBlock={number:areaPointerStart.number,time:Date.now()};areaPointerStart=null},true);
 document.addEventListener('pointerup',e=>{
- const start=areaPointerStart;areaPointerStart=null;if(!start||start.id!==e.pointerId||placingParkingFor||Date.now()-start.time>700||Math.hypot(e.clientX-start.x,e.clientY-start.y)>8)return;
- const label=e.target?.closest?.('.area-label');if(!label||label.textContent.trim()!==start.number)return;
- const x=manifest.find(v=>v.n===start.number),g=layers.get(start.number);if(x&&g)safeOpenArea(x,g.getBounds().getCenter());
+ const start=areaPointerStart;areaPointerStart=null;if(!start||start.id!==e.pointerId)return;
+ if(Math.hypot(e.clientX-start.x,e.clientY-start.y)>8){areaClickBlock={number:start.number,time:Date.now()};return}
+ if(placingParkingFor||Date.now()-start.time>700)return;
+ const label=areaLabelFromTarget(e.target);if(!label||label.textContent.trim()!==start.number)return;
+ if(e.pointerType==='mouse')return;openAreaLabel(label);
+},true);
+document.addEventListener('click',e=>{
+ if(e.button!==undefined&&e.button!==0)return;const label=areaLabelFromTarget(e.target);if(!label)return;
+ if(areaClickBlock&&areaClickBlock.number===label.textContent.trim()&&Date.now()-areaClickBlock.time<600)return;
+ openAreaLabel(label);
 },true);
 
 async function loadOne(x,focus=false){
