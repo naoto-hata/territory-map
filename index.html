@@ -702,6 +702,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
 .leaflet-marker-icon,.area-label{touch-action:manipulation}.area-error{position:fixed;left:12px;right:12px;top:110px;z-index:5000;max-width:680px;margin:auto;background:#fff3e0;color:#5b3500;border:1px solid #e4bd7b;border-radius:10px;padding:12px;font:14px/1.5 system-ui;box-shadow:0 2px 12px #0002}.area-error button{float:right;min-height:36px;border:0;border-radius:6px;background:#f4dfbd;padding:5px 10px}
 
+/* Keep desktop grid within the viewport; scroll the territory list independently. */
+@media(min-width:1101px){.app{grid-template-rows:minmax(0,1fr);overflow:hidden}.side,.mapwrap{min-height:0}.list{min-height:0}}
 .autolock-card{margin:12px 0;padding:14px;border:1px solid #d9e1ec;border-radius:14px;background:#f5f8fc}
 .autolock-card h3{margin:0 0 8px;font-size:16px;line-height:1.5}
 .autolock-list{list-style:none;margin:8px 0;padding:0;max-height:190px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
