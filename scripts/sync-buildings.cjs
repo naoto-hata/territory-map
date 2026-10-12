@@ -3,6 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {buildUpdate}=require('./building-data.cjs');
 const ORIGIN='https://berry0.net', ROOT='/42374/field/';
+let stage='configuration';
 function maySend(method,url,authStep,body,username,password){
   const u=new URL(url);
   if(u.protocol!=='https:')return false;
@@ -31,6 +32,7 @@ async function main(){
   if(!username||!password)throw new Error('Secure login configuration is not complete');
   const html=fs.readFileSync('index.html','utf8');
   const {chromium}=require('playwright');
+  stage='launch';
   const browser=await chromium.launch();
   try{
     const context=await browser.newContext({serviceWorkers:'block',acceptDownloads:false});
@@ -49,19 +51,33 @@ async function main(){
       return route.continue();
     });
     const page=await context.newPage();
+    page.on('response',response=>{
+      const u=new URL(response.url());
+      if(u.origin===ORIGIN&&[ROOT+'login_token.php',ROOT+'api.php/'].includes(u.pathname))
+        console.log('Authentication HTTP status: '+response.status());
+    });
     page.setDefaultTimeout(30000);
+    stage='login-page';
     await page.goto(ORIGIN+ROOT+'index.html',{waitUntil:'domcontentloaded'});
-    await page.locator('input[placeholder="Name"]').waitFor({state:'visible'});
+    try{await page.locator('input[placeholder="Name"]').waitFor({state:'visible'});}catch{
+      console.log('Login form visible: '+await page.locator('input[placeholder="Name"]').isVisible()+'. Blocked write: '+blocked);
+      throw new Error('Login form unavailable');
+    }
+    stage='authentication';
     await page.locator('input[placeholder="Name"]').fill(username);
     await page.locator('input[placeholder="Password"]').fill(password);
     authStep=1;
     await page.locator('ons-button.button-margin').click();
-    await page.getByText('オートロック [全体]',{exact:true}).waitFor({state:'visible'});
+    try{await page.getByText('オートロック [全体]',{exact:true}).waitFor({state:'visible'});}catch{
+      console.log('Authentication step: '+authStep+'. Blocked write: '+blocked+'. Login form visible: '+await page.locator('input[placeholder="Name"]').isVisible());
+      throw new Error('Authentication unavailable');
+    }
     if(blocked)throw new Error('Unexpected write request was blocked');
     if(authStep!==3)throw new Error('Authentication flow did not complete');
     authStep=0;
     const lists={};
     for(const [kind,label] of [['autolock','オートロック [全体]'],['oneRoom','ワンルーム [全体]']]){
+      stage='list-'+kind;
       if(kind==='oneRoom'){
         await page.goto(ORIGIN+ROOT+'index.html',{waitUntil:'domcontentloaded'});
         await page.getByText(label,{exact:true}).waitFor({state:'visible'});
@@ -81,6 +97,7 @@ async function main(){
       lists[kind]=await cards.allTextContents();
     }
     if(blocked)throw new Error('Unexpected write request was blocked');
+    stage='validate-lists';
     const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).replace(/-/g,'/');
     const result=buildUpdate(html,lists,date);
     if(process.env.BUILDING_SYNC_DRY_RUN==='true'){
@@ -93,5 +110,5 @@ async function main(){
     console.log('Building list checked. Added: '+result.added);
   }finally{await browser.close();}
 }
-if(require.main===module) main().catch(()=>{console.error('Building sync stopped safely. Current list was preserved. Check secure configuration and source format.');process.exitCode=1;});
+if(require.main===module) main().catch(()=>{console.error('Building sync stopped safely at stage: '+stage+'. Current list was preserved. Check secure configuration and source format.');process.exitCode=1;});
 module.exports={maySend};
