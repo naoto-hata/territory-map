@@ -4,7 +4,7 @@ const path=require('node:path');
 const {buildUpdate}=require('./building-data.cjs');
 const ORIGIN='https://berry0.net', ROOT='/42374/field/';
 let stage='configuration';
-function maySend(method,url,authStep,body,username,password){
+function maySend(method,url,authStep,body,username,password,tokenPosts=0){
   const u=new URL(url);
   if(u.protocol!=='https:')return false;
   if(method==='GET'||method==='HEAD'){
@@ -22,7 +22,7 @@ function maySend(method,url,authStep,body,username,password){
   if(authStep===1&&u.pathname===ROOT+'login_token.php'){
     return keys.join(',')==='password,username'&&data.username===username&&data.password===password;
   }
-  if(authStep===2&&u.pathname===ROOT+'api.php/'){
+  if((authStep===2||authStep===3)&&tokenPosts<3&&u.pathname===ROOT+'api.php/'){
     return keys.join(',')==='token'&&typeof data.token==='string'&&data.token.length>0&&data.token.length<10000;
   }
   return false;
@@ -36,10 +36,10 @@ async function main(){
   const browser=await chromium.launch();
   try{
     const context=await browser.newContext({serviceWorkers:'block',acceptDownloads:false});
-    let authStep=0,blocked=false,blockedKind='none';
+    let authStep=0,tokenPosts=0,blocked=false,blockedKind='none';
     await context.route('**/*',async route=>{
       const request=route.request(),method=request.method();
-      if(!maySend(method,request.url(),authStep,request.postData(),username,password)){
+      if(!maySend(method,request.url(),authStep,request.postData(),username,password,tokenPosts)){
         // Analytics is intentionally blocked without treating it as a site write.
         const u=new URL(request.url());
         if(u.origin===ORIGIN&&method!=='GET'&&method!=='HEAD'){
@@ -49,7 +49,8 @@ async function main(){
         return route.abort();
       }
       if(method==='POST'){
-        authStep=authStep===1?2:3;
+        if(authStep===1)authStep=2;
+        else{tokenPosts++;authStep=3;}
       }
       return route.continue();
     });
@@ -77,7 +78,6 @@ async function main(){
     }
     if(blocked)throw new Error('Unexpected write request was blocked');
     if(authStep!==3)throw new Error('Authentication flow did not complete');
-    authStep=0;
     const lists={};
     for(const [kind,label] of [['autolock','オートロック [全体]'],['oneRoom','ワンルーム [全体]']]){
       stage='list-'+kind;
@@ -100,6 +100,7 @@ async function main(){
       lists[kind]=await cards.allTextContents();
     }
     if(blocked)throw new Error('Unexpected write request was blocked');
+    authStep=0;
     stage='validate-lists';
     const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).replace(/-/g,'/');
     const result=buildUpdate(html,lists,date);

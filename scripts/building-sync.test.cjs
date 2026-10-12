@@ -34,7 +34,9 @@ test('Mutation requests denied; only the two verified authentication requests al
   assert.equal(allowed('POST',origin+'login_token.php',2,first),false);
   assert.equal(allowed('POST',origin+'api.php/',2,second),true);
   assert.equal(allowed('POST',origin+'api.php/',1,second),false);
-  assert.equal(allowed('POST',origin+'api.php/',3,second),false);
+  assert.equal(allowed('POST',origin+'api.php/',3,second),true);
+  assert.equal(allowed('POST',origin+'api.php/',4,second),false);
+  assert.equal(maySend('POST',origin+'api.php/',3,second,'fixture-user','fixture-only',3),false);
   assert.equal(allowed('POST',origin+'api.php/',2,JSON.stringify({token:'fixture',action:'delete'})),false);
   assert.equal(allowed('POST',origin+'login_token.php',1,'{}'),false);
   assert.equal(allowed('POST',origin+'login_token.php?x=1',1,first),false);
