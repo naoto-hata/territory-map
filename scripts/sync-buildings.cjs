@@ -10,7 +10,10 @@ function maySend(method,url,authStep,body,username,password,tokenPosts=0){
   if(method==='GET'||method==='HEAD'){
     if(u.origin!==ORIGIN)return ['https://unpkg.com','https://cdnjs.cloudflare.com'].includes(u.origin);
     if(!u.pathname.startsWith(ROOT))return false;
-    if(/(?:delete|remove|insert|update|register|save|logout)/i.test(u.pathname+u.search))return false;
+    if(/\/(?:delete|remove|insert|update|register|save|logout)(?:[/.]|$)/i.test(u.pathname))return false;
+    for(const [key,value] of u.searchParams){
+      if(/^(action|operation|method)$/i.test(key)&&/^(delete|remove|insert|update|register|save|logout)$/i.test(value))return false;
+    }
     return true;
   }
   if(method!=='POST'||u.origin!==ORIGIN||u.search)return false;
@@ -36,12 +39,13 @@ async function main(){
   const browser=await chromium.launch();
   try{
     const context=await browser.newContext({serviceWorkers:'block',acceptDownloads:false});
-    let authStep=0,tokenPosts=0,blocked=false,blockedKind='none';
+    let authStep=0,tokenPosts=0,blocked=false,blockedKind='none',blockedReads=0;
     await context.route('**/*',async route=>{
       const request=route.request(),method=request.method();
       if(!maySend(method,request.url(),authStep,request.postData(),username,password,tokenPosts)){
         // Analytics is intentionally blocked without treating it as a site write.
         const u=new URL(request.url());
+        if(u.origin===ORIGIN&&(method==='GET'||method==='HEAD'))blockedReads++;
         if(u.origin===ORIGIN&&method!=='GET'&&method!=='HEAD'){
           blocked=true;
           blockedKind=u.pathname===ROOT+'api.php/'?'authentication-root':'other-mutation';
@@ -59,6 +63,7 @@ async function main(){
       const u=new URL(response.url());
       if(u.origin===ORIGIN&&[ROOT+'login_token.php',ROOT+'api.php/'].includes(u.pathname))
         console.log('Authentication HTTP status: '+response.status());
+      else if(u.origin===ORIGIN&&response.request().resourceType()==='xhr')console.log('Source read HTTP status: '+response.status());
     });
     page.setDefaultTimeout(30000);
     stage='login-page';
@@ -87,7 +92,10 @@ async function main(){
       }
       await page.getByText(label,{exact:true}).click();
       const cards=page.locator('ons-page#flat .card__title');
-      await cards.first().waitFor({state:'visible'});
+      try{await cards.first().waitFor({state:'visible'});}catch{
+        console.log('Visible list diagnostic: scoped titles '+await cards.count()+', all titles '+await page.locator('.card__title').count()+', blocked reads '+blockedReads+', blocked write '+blocked+'.');
+        throw new Error('Building list unavailable');
+      }
       // Require settled counts across three observations. No building or room is clicked.
       let previous=-1,stable=0;
       for(let attempt=0;attempt<20;attempt++){

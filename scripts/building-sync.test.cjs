@@ -42,6 +42,8 @@ test('Mutation requests denied; only the two verified authentication requests al
   assert.equal(allowed('POST',origin+'login_token.php?x=1',1,first),false);
   assert.equal(allowed('POST','https://example.com/42374/field/login_token.php',1,first),false);
   assert.equal(allowed('GET',origin+'delete?id=1',0),false);
+  assert.equal(allowed('GET',origin+'api.php/flats?order=updated_date',0),true);
+  assert.equal(allowed('GET',origin+'api.php/?action=delete',0),false);
   assert.equal(allowed('GET',origin+'index.html',0),true);
   assert.equal(allowed('GET','http://berry0.net/42374/field/index.html',0),false);
 });
