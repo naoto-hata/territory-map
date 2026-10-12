@@ -1,0 +1,33 @@
+name: Verify building list reader without changes
+on:
+  push:
+    branches: [prepare-weekly-building-sync]
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/building-sync-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: building-list-read-check
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test scripts/building-sync.test.cjs
+      - name: Install isolated reader
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify names without changing files
+        env:
+          BERRY_USERNAME: ${{ secrets.BERRY_USERNAME }}
+          BERRY_PASSWORD: ${{ secrets.BERRY_PASSWORD }}
+          BUILDING_SYNC_DRY_RUN: 'true'
+        run: node scripts/sync-buildings.cjs
