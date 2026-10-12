@@ -33,7 +33,6 @@ jobs:
         env:
           BERRY_USERNAME: ${{ secrets.BERRY_USERNAME }}
           BERRY_PASSWORD: ${{ secrets.BERRY_PASSWORD }}
-          BERRY_LOGIN_POST_PATH: ${{ vars.BERRY_LOGIN_POST_PATH }}
         run: node scripts/sync-buildings.cjs
       - name: Commit the checked list
         run: |

@@ -24,13 +24,22 @@ test('Empty, malformed, excessive, partial lists and HTML injection abort',()=>{
     assert.throws(()=>buildUpdate(html,{...lists,autolock:bad},'2026/10/10'));
   }
 });
-test('All mutation methods denied except a single verified authentication route',()=>{
+test('Mutation requests denied; only the two verified authentication requests allowed in order',()=>{
   const origin='https://berry0.net/42374/field/';
-  for(const method of ['POST','PUT','PATCH','DELETE'])assert.equal(maySend(method,origin+'records/buildings','',false),false);
-  assert.equal(maySend('POST',origin+'login-endpoint','/42374/field/login-endpoint',true),true);
-  assert.equal(maySend('POST',origin+'login-endpoint','/42374/field/login-endpoint',false),false);
-  assert.equal(maySend('POST','https://example.com/42374/field/login-endpoint','/42374/field/login-endpoint',true),false);
-  assert.equal(maySend('GET',origin+'delete?id=1','',false),false);
-  assert.equal(maySend('GET',origin+'index.html','',false),true);
-  assert.equal(maySend('GET','http://berry0.net/42374/field/index.html','',false),false);
+  const first=JSON.stringify({username:'fixture-user',password:'fixture-only'}),second=JSON.stringify({token:'fixture-token'});
+  const allowed=(method,url,step,body)=>maySend(method,url,step,body,'fixture-user','fixture-only');
+  for(const method of ['POST','PUT','PATCH','DELETE'])assert.equal(allowed(method,origin+'api.php/records/buildings',0,first),false);
+  assert.equal(allowed('POST',origin+'login_token.php',1,first),true);
+  assert.equal(allowed('POST',origin+'login_token.php',0,first),false);
+  assert.equal(allowed('POST',origin+'login_token.php',2,first),false);
+  assert.equal(allowed('POST',origin+'api.php/',2,second),true);
+  assert.equal(allowed('POST',origin+'api.php/',1,second),false);
+  assert.equal(allowed('POST',origin+'api.php/',3,second),false);
+  assert.equal(allowed('POST',origin+'api.php/',2,JSON.stringify({token:'fixture',action:'delete'})),false);
+  assert.equal(allowed('POST',origin+'login_token.php',1,'{}'),false);
+  assert.equal(allowed('POST',origin+'login_token.php?x=1',1,first),false);
+  assert.equal(allowed('POST','https://example.com/42374/field/login_token.php',1,first),false);
+  assert.equal(allowed('GET',origin+'delete?id=1',0),false);
+  assert.equal(allowed('GET',origin+'index.html',0),true);
+  assert.equal(allowed('GET','http://berry0.net/42374/field/index.html',0),false);
 });
