@@ -36,13 +36,16 @@ async function main(){
   const browser=await chromium.launch();
   try{
     const context=await browser.newContext({serviceWorkers:'block',acceptDownloads:false});
-    let authStep=0,blocked=false;
+    let authStep=0,blocked=false,blockedKind='none';
     await context.route('**/*',async route=>{
       const request=route.request(),method=request.method();
       if(!maySend(method,request.url(),authStep,request.postData(),username,password)){
         // Analytics is intentionally blocked without treating it as a site write.
         const u=new URL(request.url());
-        if(u.origin===ORIGIN&&method!=='GET'&&method!=='HEAD')blocked=true;
+        if(u.origin===ORIGIN&&method!=='GET'&&method!=='HEAD'){
+          blocked=true;
+          blockedKind=u.pathname===ROOT+'api.php/'?'authentication-root':'other-mutation';
+        }
         return route.abort();
       }
       if(method==='POST'){
@@ -58,7 +61,7 @@ async function main(){
     });
     page.setDefaultTimeout(30000);
     stage='login-page';
-    await page.goto(ORIGIN+ROOT+'index.html',{waitUntil:'domcontentloaded'});
+    await page.goto(ORIGIN+ROOT+'login.html',{waitUntil:'domcontentloaded'});
     try{await page.locator('input[placeholder="Name"]').waitFor({state:'visible'});}catch{
       console.log('Login form visible: '+await page.locator('input[placeholder="Name"]').isVisible()+'. Blocked write: '+blocked);
       throw new Error('Login form unavailable');
@@ -69,7 +72,7 @@ async function main(){
     authStep=1;
     await page.locator('ons-button.button-margin').click();
     try{await page.getByText('オートロック [全体]',{exact:true}).waitFor({state:'visible'});}catch{
-      console.log('Authentication step: '+authStep+'. Blocked write: '+blocked+'. Login form visible: '+await page.locator('input[placeholder="Name"]').isVisible());
+      console.log('Authentication step: '+authStep+'. Blocked write: '+blocked+'. Blocked kind: '+blockedKind+'. Login form visible: '+await page.locator('input[placeholder="Name"]').isVisible());
       throw new Error('Authentication unavailable');
     }
     if(blocked)throw new Error('Unexpected write request was blocked');
