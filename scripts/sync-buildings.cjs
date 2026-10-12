@@ -83,17 +83,21 @@ async function main(){
     }
     if(blocked)throw new Error('Unexpected write request was blocked');
     if(authStep!==3)throw new Error('Authentication flow did not complete');
+    await page.waitForLoadState('networkidle');
     const lists={};
     for(const [kind,label] of [['autolock','オートロック [全体]'],['oneRoom','ワンルーム [全体]']]){
       stage='list-'+kind;
       if(kind==='oneRoom'){
         await page.goto(ORIGIN+ROOT+'index.html',{waitUntil:'domcontentloaded'});
         await page.getByText(label,{exact:true}).waitFor({state:'visible'});
+        await page.waitForLoadState('networkidle');
       }
       await page.getByText(label,{exact:true}).click();
+      await page.waitForLoadState('networkidle');
       const cards=page.locator('ons-page#flat .card__title');
       try{await cards.first().waitFor({state:'visible'});}catch{
         console.log('Visible list diagnostic: scoped titles '+await cards.count()+', all titles '+await page.locator('.card__title').count()+', blocked reads '+blockedReads+', blocked write '+blocked+'.');
+        console.log('Page identifiers: '+JSON.stringify(await page.locator('ons-page[id]').evaluateAll(es=>es.map(e=>e.id))));
         throw new Error('Building list unavailable');
       }
       // Require settled counts across three observations. No building or room is clicked.
