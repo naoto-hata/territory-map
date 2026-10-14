@@ -1139,6 +1139,7 @@ function territoryPdfUrl(){return new URL('./territory-maps.pdf',location.protoc
 function getTerritoryPdfDoc(){if(!territoryPdfDocPromise){territoryPdfDocPromise=pdfjsLib.getDocument({url:territoryPdfUrl(),withCredentials:false}).promise;}return territoryPdfDocPromise;}
 function getTerritoryPdfBytes(){if(!territoryPdfBytesPromise){territoryPdfBytesPromise=fetch(territoryPdfUrl(),{cache:'force-cache'}).then(r=>{if(!r.ok)throw new Error('PDF '+r.status);return r.arrayBuffer();});}return territoryPdfBytesPromise;}
 async function renderTerritoryPdfPage(pageNo,n){
+  resetTerritoryPdfSave();
   territoryPdfViewer.classList.add('open');territoryPdfViewer.setAttribute('aria-hidden','false');
   document.getElementById('pdfViewerTitle').textContent=`区域 ${n} - 国土地理院区域図`;
   territoryPdfStatus.className='pdf-status';territoryPdfStatus.textContent='区域地図を読み込み中...';
@@ -1165,23 +1166,78 @@ document.getElementById('territoryPdfLink').addEventListener('click',()=>{
   const n=selectedTerritory?.x?.n||String(currentTerritoryPdf.page).padStart(3,'0');
   renderTerritoryPdfPage(currentTerritoryPdf.page,n);
 });
-document.getElementById('pdfViewerClose').addEventListener('click',()=>{territoryPdfViewer.classList.remove('open');territoryPdfViewer.setAttribute('aria-hidden','true');});
+document.getElementById('pdfViewerClose').addEventListener('click',()=>{resetTerritoryPdfSave();territoryPdfViewer.classList.remove('open');territoryPdfViewer.setAttribute('aria-hidden','true');});
+// Prepare first, then share on a fresh tap so iPhone user activation is preserved.
+let territoryPdfSaveTicket=0,territoryPdfPrepared=null,territoryPdfSaveBusy=false;
+const territoryPdfOpenFile=document.createElement('button');
+territoryPdfOpenFile.id='pdfViewerOpenFile';territoryPdfOpenFile.type='button';territoryPdfOpenFile.className='pdf-download';territoryPdfOpenFile.textContent='PDFを開く';territoryPdfOpenFile.hidden=true;
+document.getElementById('pdfViewerDownload').after(territoryPdfOpenFile);
+function resetTerritoryPdfSave(){
+  territoryPdfSaveTicket++;
+  if(territoryPdfPrepared?.url)URL.revokeObjectURL(territoryPdfPrepared.url);
+  territoryPdfPrepared=null;territoryPdfOpenFile.hidden=true;
+  const btn=document.getElementById('pdfViewerDownload');btn.textContent='この区域PDFを保存';btn.disabled=territoryPdfSaveBusy;
+}
+function territoryPdfCanShare(file){
+  try{return typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&navigator.canShare({files:[file]});}catch{return false;}
+}
+function territoryPdfStandalone(){return navigator.standalone===true||(typeof window.matchMedia==='function'&&window.matchMedia('(display-mode: standalone)').matches);}
+function openPreparedTerritoryPdf(){
+  const prepared=territoryPdfPrepared;if(!prepared)return;
+  if(!prepared.url)prepared.url=URL.createObjectURL(prepared.file);
+  const a=document.createElement('a');a.href=prepared.url;a.target='_blank';a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();
+  territoryPdfStatus.className='pdf-status';territoryPdfStatus.textContent='PDFを開く操作を行いました。開いたPDFの共有ボタンから「ファイルに保存」を選んでください。開かない場合は区域マップをSafariで開いて保存してください。';
+}
+territoryPdfOpenFile.addEventListener('click',openPreparedTerritoryPdf);
+function downloadPreparedTerritoryPdf(){
+  const prepared=territoryPdfPrepared;if(!prepared)return;
+  if(!prepared.url)prepared.url=URL.createObjectURL(prepared.file);
+  const a=document.createElement('a');a.href=prepared.url;a.download=prepared.name;document.body.appendChild(a);a.click();a.remove();
+  territoryPdfStatus.className='pdf-status';territoryPdfStatus.textContent=`${prepared.name} のダウンロードを開始しました。保存先はブラウザーのダウンロード一覧で確認してください。`;
+}
 document.getElementById('pdfViewerDownload').addEventListener('click',async()=>{
-  if(!currentTerritoryPdf)return;
+  if(!currentTerritoryPdf||territoryPdfSaveBusy)return;
   const n=selectedTerritory?.x?.n||String(currentTerritoryPdf.page).padStart(3,'0');
-  const btn=document.getElementById('pdfViewerDownload');const old=btn.textContent;btn.disabled=true;btn.textContent='作成中...';
+  const pageNo=currentTerritoryPdf.page,key=String(n)+'|'+pageNo,ticket=territoryPdfSaveTicket;
+  const btn=document.getElementById('pdfViewerDownload');
+  if(territoryPdfPrepared?.key===key){
+    if(territoryPdfCanShare(territoryPdfPrepared.file)){
+      territoryPdfSaveBusy=true;btn.disabled=true;
+      territoryPdfStatus.className='pdf-status';territoryPdfStatus.textContent='共有画面で「ファイルに保存」を選び、保存するフォルダーを指定してください。';
+      try{
+        // No PDF creation or other await before this call: this tap opens sharing.
+        await navigator.share({files:[territoryPdfPrepared.file],title:`区域 ${n} の地図PDF`});
+        if(ticket===territoryPdfSaveTicket)territoryPdfStatus.textContent='共有画面の操作が終了しました。「ファイルに保存」を選んだ場合は、指定したフォルダーでPDFを確認してください。';
+      }catch(e){
+        if(ticket===territoryPdfSaveTicket){
+          if(e?.name==='AbortError')territoryPdfStatus.textContent='共有・保存は完了していません。保存する場合は「保存先を選ぶ」をもう一度押してください。';
+          else{territoryPdfOpenFile.hidden=false;territoryPdfStatus.textContent='共有画面を開けませんでした。「PDFを開く」を押し、開いたPDFの共有ボタンから「ファイルに保存」を選んでください。';}
+        }
+      }finally{territoryPdfSaveBusy=false;btn.disabled=false;btn.textContent=territoryPdfPrepared?'保存先を選ぶ':'この区域PDFを保存';}
+    }else if(territoryPdfStandalone())openPreparedTerritoryPdf();
+    else downloadPreparedTerritoryPdf();
+    return;
+  }
+  territoryPdfSaveBusy=true;btn.disabled=true;btn.textContent='作成中...';
   try{
     await ensurePdfLib();
     const srcBytes=await getTerritoryPdfBytes();
     const src=await PDFLib.PDFDocument.load(srcBytes.slice(0));
     const out=await PDFLib.PDFDocument.create();
-    const [copied]=await out.copyPages(src,[currentTerritoryPdf.page-1]);out.addPage(copied);
-    const bytes=await out.save();const blob=new Blob([bytes],{type:'application/pdf'});const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=`territory-${n}.pdf`;document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),30000);
-    territoryPdfStatus.textContent=`区域 ${n} だけのPDFを保存しました。iPad/iPhoneではダウンロード一覧または「ファイル」アプリで確認できます。`;
-  }catch(e){console.error(e);territoryPdfStatus.className='pdf-status pdf-error';territoryPdfStatus.textContent='この区域PDFの作成に失敗しました。';}
-  finally{btn.disabled=false;btn.textContent=old;}
+    const [copied]=await out.copyPages(src,[pageNo-1]);out.addPage(copied);
+    const bytes=await out.save(),name=`territory-${n}.pdf`;
+    const file=typeof File==='function'?new File([bytes],name,{type:'application/pdf'}):new Blob([bytes],{type:'application/pdf'});
+    if(ticket!==territoryPdfSaveTicket)return;
+    territoryPdfPrepared={key,file,name,url:null};territoryPdfStatus.className='pdf-status';
+    if(territoryPdfCanShare(file)){
+      btn.textContent='保存先を選ぶ';
+      territoryPdfStatus.textContent='PDFの準備ができました。右上の「保存先を選ぶ」を押し、共有画面の「ファイルに保存」で保存先を選んでください。';
+    }else if(territoryPdfStandalone()){
+      btn.textContent='PDFを開いて保存';territoryPdfOpenFile.hidden=false;
+      territoryPdfStatus.textContent='PDFの準備ができました。「PDFを開いて保存」を押し、開いたPDFの共有ボタンから「ファイルに保存」を選んでください。';
+    }else{btn.textContent='もう一度ダウンロード';downloadPreparedTerritoryPdf();}
+  }catch(e){console.error(e);if(ticket===territoryPdfSaveTicket){territoryPdfStatus.className='pdf-status pdf-error';territoryPdfStatus.textContent='この区域PDFの作成に失敗しました。もう一度お試しください。';btn.textContent='この区域PDFを保存';}}
+  finally{territoryPdfSaveBusy=false;btn.disabled=false;if(ticket!==territoryPdfSaveTicket)btn.textContent='この区域PDFを保存';}
 });
 function cancelParkingPlacement(){const wasMoving=typeof placingParkingFor==='object';placingParkingFor=null;document.getElementById('cancelParkingPlacement').classList.add('hidden');document.getElementById('stat').textContent='駐車場所の追加をキャンセルしました。';if(wasMoving&&parkingDraft)showParkingEditor();else if(selectedTerritory)openSheet(selectedTerritory.x,selectedTerritory.center)}
 document.getElementById('setParking').addEventListener('click',()=>{if(!selectedTerritory||parkingWriteBusy)return;placingParkingFor=selectedTerritory.x.n;document.getElementById('stat').textContent=`区域 ${placingParkingFor}：追加する駐車場所を地図でタップしてください。`;document.getElementById('cancelParkingPlacement').classList.remove('hidden');document.getElementById('sheet').classList.remove('open')});
