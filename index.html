@@ -953,7 +953,7 @@ function openSheet(x,center){
  selectedTerritory={x,center};document.getElementById('sheet').classList.add('open');document.getElementById('sheetTitle').textContent=`区域 ${x.n}`;document.getElementById('myMapLink').href=`https://www.google.com/maps/d/viewer?mid=${encodeURIComponent(x.mid)}`;const tpdf=territoryPdfInfo(x.n);currentTerritoryPdf=tpdf;document.getElementById('territoryPdfLink').disabled=!tpdf;document.getElementById('areaRouteLink').href=`https://www.google.com/maps/dir/?api=1&destination=${center.lat},${center.lng}`;
  renderAutolockBuildings(x.n);
  renderOneRoomBuildings(x.n);
- const info=parkingInfo[x.n];document.getElementById('parkingCard').classList.remove('hidden');document.getElementById('parkingNote').textContent=info?info.note:'駐車可能な場所が分かったら、この区域に追加できます。';document.getElementById('parkingMeta').textContent=info?`駐車場情報PDF：${(info.pages||[info.page]).join('・')}ページ`:'';const pdf=document.getElementById('pdfLink');pdf.classList.toggle('hidden',!info);if(info)pdf.href=`./parking-info.pdf#page=${info.page}`;
+ const areaKey=String(x.n).replace(/^#/, '').padStart(3,'0');const info=parkingInfo[areaKey]||parkingInfo[String(Number(x.n))];document.getElementById('parkingCard').classList.remove('hidden');document.getElementById('parkingNote').textContent=info?info.note:'駐車可能な場所が分かったら、この区域に追加できます。';document.getElementById('parkingMeta').textContent=info?`駐車場情報PDF：${(info.pages||[info.page]).join('・')}ページ`:'';const pdf=document.getElementById('pdfLink');pdf.classList.toggle('hidden',!info);if(info)pdf.href=`./parking-info.pdf#page=${info.page}`;
  try{updateParkingDistance(x.n,center)}catch(e){reportAreaOpenError(e);document.getElementById('parkingHint').textContent='駐車場所の表示中にエラーが起きました。上のメッセージを確認してください。'}
 }
 function updateParkingDistance(n,center){
@@ -1079,7 +1079,7 @@ async function renderParkingPdfPage(){
 }
 function closeParkingPdf(){++parkingPdfRenderToken;parkingPdfOverlay.classList.remove('open');parkingPdfOverlay.setAttribute('aria-hidden','true');document.body.style.overflow='';document.getElementById('pdfLink').focus();}
 document.getElementById('pdfLink').addEventListener('click',e=>{
- e.preventDefault();const n=selectedTerritory?.x?.n, info=parkingInfo[n];if(!info)return;
+ e.preventDefault();const n=selectedTerritory?.x?.n, info=parkingInfo[String(n).replace(/^#/, '').padStart(3,'0')]||parkingInfo[String(Number(n))];if(!info)return;
  parkingPdfPages=info.pages||[info.page];parkingPdfPosition=0;
  document.getElementById('parkingPdfTitle').textContent=`区域 ${n} の駐車場情報`;
  document.getElementById('parkingPdfNav').classList.toggle('hidden',parkingPdfPages.length<2);
