@@ -771,6 +771,7 @@ const parkingInfo={
 "111":{page:7,note:"新居側玄関前と砂利スペース、計2台分。"},
 "117":{page:4,note:"203番が空いていれば使用可。周辺は一方通行。"},
 "120":{page:2,note:"赤いコーンを移動して駐車し、退出時に戻す。"},
+"124":{page:6,note:"サーパス西塚柳通りの東側駐車場81番。空いていれば縦列駐車可。"},
 "135":{page:4,pages:[4,7],note:"駐車情報が2か所あります。4ページ：傾斜・屋根高に注意。7ページ：5～10台駐車可能。"},
 "152":{page:2,note:"10・11番から優先して駐車。"},
 "160":{page:2,note:"写真左側3台＋右側3台（軽専用）が駐車可。"},
@@ -1048,7 +1049,7 @@ const parkingPdfCanvas=document.getElementById('parkingPdfCanvas');
 const parkingPdfHelp=document.getElementById('parkingPdfHelp');
 const parkingPdfScroll=document.getElementById('parkingPdfScroll');
 let parkingPdfDocPromise=null, parkingPdfPages=[],parkingPdfPosition=0,parkingPdfRenderToken=0;
-function parkingPdfUrl(){return new URL('./parking-info.pdf',location.protocol==='file:'?'https://naoto-hata.github.io/territory-map/':window.location.href).href;}
+function parkingPdfUrl(){return new URL('./parking-info.pdf?v=20261107',location.protocol==='file:'?'https://naoto-hata.github.io/territory-map/':window.location.href).href;}
 async function renderParkingPdfPage(){
  const token=++parkingPdfRenderToken, pageNum=parkingPdfPages[parkingPdfPosition];
  const label=`${parkingPdfPosition+1}/${parkingPdfPages.length}（PDF ${pageNum}ページ）`;
@@ -1074,7 +1075,7 @@ async function renderParkingPdfPage(){
   parkingPdfCanvas.getContext('2d',{alpha:false}).drawImage(tmp,0,0);
   parkingPdfScroll.scrollTop=0;
   parkingPdfHelp.textContent=`区域 ${selectedTerritory?.x?.n||''}：${label}。入力文字も含めて表示しています。`;
- }catch(e){console.error('Parking PDF:',e);parkingPdfHelp.textContent='駐車場PDFを表示できません。GitHubに修正版のparking-info.pdfがあるか確認してください。「別タブで開く」も使えます。';}
+ }catch(e){console.error('Parking PDF:',e);parkingPdfHelp.textContent='PDFの埋め込み表示に失敗しました。右上の「別タブで開く」から直接表示できます。';parkingPdfExternal.focus();}
 }
 function closeParkingPdf(){++parkingPdfRenderToken;parkingPdfOverlay.classList.remove('open');parkingPdfOverlay.setAttribute('aria-hidden','true');document.body.style.overflow='';document.getElementById('pdfLink').focus();}
 document.getElementById('pdfLink').addEventListener('click',e=>{
